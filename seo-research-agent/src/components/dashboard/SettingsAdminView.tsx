@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Cpu, 
   Lock, 
@@ -12,16 +12,26 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-export const SettingsAdminView: React.FC = () => {
+interface SettingsAdminViewProps {
+  projectsCount: number;
+  researchRunsCount: number;
+}
+
+export const SettingsAdminView: React.FC<SettingsAdminViewProps> = ({
+  projectsCount,
+  researchRunsCount,
+}) => {
   const [logFilter, setLogFilter] = useState<string>('ALL');
   const [searchLog, setSearchLog] = useState<string>('');
   const [isPinging, setIsPinging] = useState(false);
   const [pingSuccess, setPingSuccess] = useState(false);
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const initialLogs = [
     { time: '08:44:20 UTC', level: 'INFO', msg: 'UI Scaffold initialized. Next.js 16 App Router loaded.' },
     { time: '08:44:22 UTC', level: 'INFO', msg: 'Loaded mock demo dataset for seed "best ai tools for productivity".' },
-    { time: '08:44:25 UTC', level: 'AUDIT', msg: 'Security policy verified: Zero client-side API credentials present in browser bundles.' },
+    { time: '08:44:25 UTC', level: 'AUDIT', msg: 'Demo configuration loaded with no external provider connection.' },
     { time: '08:44:30 UTC', level: 'INFO', msg: 'SERP competitor mock engine ready with 10 ranking targets.' },
     { time: '08:45:00 UTC', level: 'WARN', msg: 'Live external providers offline (Expected in Milestone 1 UI scaffold).' },
     { time: '08:46:12 UTC', level: 'INFO', msg: 'Country comparison matrix populated across 8 target markets.' },
@@ -31,12 +41,19 @@ export const SettingsAdminView: React.FC = () => {
   const handlePing = () => {
     setIsPinging(true);
     setPingSuccess(false);
-    setTimeout(() => {
+    checkTimerRef.current = setTimeout(() => {
       setIsPinging(false);
       setPingSuccess(true);
-      setTimeout(() => setPingSuccess(false), 3000);
+      resetTimerRef.current = setTimeout(() => setPingSuccess(false), 3000);
     }, 800);
   };
+
+  useEffect(() => {
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const filteredLogs = initialLogs.filter((l) => {
     if (logFilter !== 'ALL' && l.level !== logFilter) return false;
@@ -50,7 +67,7 @@ export const SettingsAdminView: React.FC = () => {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">Settings &amp; Admin Operations</h2>
+            <h1 className="text-lg font-bold text-slate-900">Settings &amp; Admin Operations</h1>
             <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
               PRD FR-08 Admin Dashboard
             </span>
@@ -59,17 +76,18 @@ export const SettingsAdminView: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500">
-            Operational visibility, provider connection health, security controls, and system diagnostics.
+            Demo-only configuration and diagnostics. No backend health endpoint or live provider is connected.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={handlePing}
           disabled={isPinging}
           className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isPinging ? 'animate-spin' : ''}`} />
-          <span>{pingSuccess ? 'Adapter Status: Healthy (Demo)' : 'Test Internal Health'}</span>
+          <span>{pingSuccess ? 'Client UI responded' : 'Run client UI check'}</span>
         </button>
       </div>
 
@@ -81,7 +99,7 @@ export const SettingsAdminView: React.FC = () => {
             <Users className="h-4 w-4 text-indigo-500" />
           </div>
           <div className="mt-2 text-2xl font-bold text-slate-900">2</div>
-          <div className="mt-1 text-[11px] text-slate-400">1 Admin, 1 Researcher</div>
+          <div className="mt-1 text-[11px] text-slate-400">Demo identities, not authenticated users</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
@@ -89,8 +107,8 @@ export const SettingsAdminView: React.FC = () => {
             <span>Active Projects</span>
             <FolderKanban className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900">4</div>
-          <div className="mt-1 text-[11px] text-slate-400">US, UK, DE, AU markets</div>
+          <div className="mt-2 text-2xl font-bold text-slate-900">{projectsCount}</div>
+          <div className="mt-1 text-[11px] text-slate-400">Session and bundled demo projects</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
@@ -98,8 +116,8 @@ export const SettingsAdminView: React.FC = () => {
             <span>Research Runs Run</span>
             <Activity className="h-4 w-4 text-blue-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900">8</div>
-          <div className="mt-1 text-[11px] text-emerald-600 font-semibold">100% demo success rate</div>
+          <div className="mt-2 text-2xl font-bold text-slate-900">{researchRunsCount}</div>
+          <div className="mt-1 text-[11px] text-slate-400">Metadata rows bundled with the demo</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
@@ -121,8 +139,8 @@ export const SettingsAdminView: React.FC = () => {
               PRD Security Rule: API secrets must never be exposed to the client or browser logs.
             </p>
           </div>
-          <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-            <Lock className="h-3.5 w-3.5" /> Secrets Protected Server-Side
+          <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-md">
+            <Lock className="h-3.5 w-3.5" /> No providers configured
           </span>
         </div>
 
@@ -182,7 +200,7 @@ export const SettingsAdminView: React.FC = () => {
         <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-slate-600" />
-            <h3 className="text-sm font-bold text-slate-900">Operational Log Stream (Audit Trail)</h3>
+            <h3 className="text-sm font-bold text-slate-900">Simulated Operational Log Stream</h3>
           </div>
 
           {/* Log Controls */}
@@ -201,8 +219,10 @@ export const SettingsAdminView: React.FC = () => {
             <div className="flex rounded-md border border-slate-200 bg-slate-50 p-0.5 text-[10px] font-semibold">
               {['ALL', 'INFO', 'WARN', 'AUDIT'].map((lvl) => (
                 <button
+                  type="button"
                   key={lvl}
                   onClick={() => setLogFilter(lvl)}
+                  aria-pressed={logFilter === lvl}
                   className={`rounded px-2 py-0.5 transition ${
                     logFilter === lvl ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                   }`}

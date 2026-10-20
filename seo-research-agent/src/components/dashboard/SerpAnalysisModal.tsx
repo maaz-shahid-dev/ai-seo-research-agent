@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId, useRef } from 'react';
 import { 
   X, 
   ExternalLink, 
@@ -11,6 +11,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { KeywordResult, SERPResult } from '@/types/seo';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 
 interface SerpAnalysisModalProps {
   keyword: KeywordResult | null;
@@ -27,16 +28,25 @@ export const SerpAnalysisModal: React.FC<SerpAnalysisModalProps> = ({
   countryCode,
   languageCode,
 }) => {
+  const titleId = useId();
+  const descriptionId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useDialogFocus(keyword !== null, onClose, closeButtonRef);
+
   if (!keyword) return null;
 
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs"
       onClick={onClose}
-      aria-modal="true"
-      role="dialog"
     >
       <div 
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
         className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -51,10 +61,10 @@ export const SerpAnalysisModal: React.FC<SerpAnalysisModalProps> = ({
                 Demo Snapshot
               </span>
             </div>
-            <h3 className="mt-2 text-lg font-bold text-slate-900">
+            <h3 id={titleId} className="mt-2 text-lg font-bold text-slate-900">
               Top Search Engine Competitors for: <span className="text-indigo-600 font-mono">&quot;{keyword.keyword}&quot;</span>
             </h3>
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div id={descriptionId} className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <Globe className="h-3.5 w-3.5 text-slate-400" /> Market: {countryCode} ({languageCode})
               </span>
@@ -69,9 +79,11 @@ export const SerpAnalysisModal: React.FC<SerpAnalysisModalProps> = ({
             </div>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
-            aria-label="Close SERP modal"
+            aria-label="Close SERP analysis dialog"
           >
             <X className="h-5 w-5" />
           </button>
@@ -147,7 +159,9 @@ export const SerpAnalysisModal: React.FC<SerpAnalysisModalProps> = ({
                           }`}>
                             {item.authority_metric_value !== null ? item.authority_metric_value : 'Not available'}
                           </span>
-                          <span className="text-xs text-slate-400">/ 100</span>
+                          {item.authority_metric_value !== null && (
+                            <span className="text-xs text-slate-400">/ 100</span>
+                          )}
                         </div>
                         <div className="mt-1 text-[10px] text-slate-400">
                           Provider: {item.source}
@@ -167,6 +181,7 @@ export const SerpAnalysisModal: React.FC<SerpAnalysisModalProps> = ({
             Clicking external links opens live competitors in a new browser tab.
           </span>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white transition hover:bg-slate-800"
           >

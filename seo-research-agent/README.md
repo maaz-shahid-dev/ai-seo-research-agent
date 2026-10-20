@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI SEO Research Agent
 
-## Getting Started
+An evidence-first Next.js dashboard for exploring keyword opportunities, inspecting SERP snapshots, mapping content coverage, and reviewing AI-assisted niche assessments.
 
-First, run the development server:
+The current repository is a Milestone 1 frontend demo. It ships one complete, clearly labeled static research snapshot for:
 
-```bash
+- Project: `AI Productivity SaaS & Agents`
+- Seed: `best ai tools for productivity`
+- Market: `US / en`
+
+Other project and run rows are metadata previews only. The app intentionally shows an unavailable/empty state instead of relabeling that US snapshot or inventing metrics for another query.
+
+## Run locally
+
+Requirements: Node.js 22.18+ and npm (the regression tests use Node's built-in TypeScript stripping).
+
+```powershell
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
 
-## Learn More
+## Current capabilities
 
-To learn more about Next.js, take a look at the following resources:
+- Responsive dashboard navigation and URL-backed views
+- Exact project/query/market snapshot isolation
+- Keyword search, filters, sorting, clusters, selection, and CSV export
+- SERP evidence with explicit missing-snapshot states
+- Derived content-coverage and overview indicators
+- Evidence-based AI demo assessment
+- Project creation and session-level project operations
+- Admin/researcher role preview with guarded admin UI
+- Formula-safe RFC-4180 CSV generation and exact in-session report snapshots
+- Loading, empty, provider-error, and rate-limit UI previews
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Data integrity
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- No live SEO or AI provider is connected.
+- No code path generates random search volume, difficulty, CPC, ranking URLs, or authority metrics.
+- Every bundled metric retains its source and retrieval timestamp.
+- Historical rows without bundled payloads cannot download the current buffer as if it were the original report.
+- Demo role switching is a UI preview, not production authentication. Real authorization must be enforced server-side.
 
-## Deploy on Vercel
+## Planned backend
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The product PRD proposes a separate FastAPI service, PostgreSQL, a licensed SEO data adapter, and an evidence-grounded AI service. Keep all credentials server-side. [.env.example](./.env.example) documents placeholder names only; this frontend does not consume them yet.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+The frontend can be deployed to Vercel after all quality checks pass. Connect a backend and authentication before treating projects, reports, admin diagnostics, or provider health as persistent production features.

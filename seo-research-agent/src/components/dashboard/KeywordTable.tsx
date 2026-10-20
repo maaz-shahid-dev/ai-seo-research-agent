@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 
   Search, 
   ArrowUpDown, 
@@ -14,15 +14,13 @@ import {
   Copy,
   Table as TableIcon,
   FolderTree,
-  CheckSquare,
-  Square
 } from 'lucide-react';
 import { KeywordResult, DemoStateMode } from '@/types/seo';
 import { exportKeywordsToCSV } from '@/lib/exportCsv';
-import { DEMO_CLUSTERS } from '@/data/demo-data';
 
 interface KeywordTableProps {
   keywords: KeywordResult[];
+  snapshotId: string | null;
   countryCode: string;
   languageCode: string;
   demoState: DemoStateMode;
@@ -33,9 +31,24 @@ interface KeywordTableProps {
 type SortField = 'keyword' | 'search_volume' | 'keyword_difficulty' | 'cpc';
 type SortOrder = 'asc' | 'desc';
 type TableViewMode = 'table' | 'clusters';
+type CopyStatus = 'success' | 'error';
+
+interface ClusterSummary {
+  name: string;
+  keywords: KeywordResult[];
+  totalVolume: number;
+  averageDifficulty: number | null;
+  dominantIntent: string;
+}
+
+interface SelectionState {
+  keywordIdsKey: string;
+  ids: Set<string>;
+}
 
 export const KeywordTable: React.FC<KeywordTableProps> = ({
   keywords,
+  snapshotId,
   countryCode,
   languageCode,
   demoState,
@@ -49,13 +62,37 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
   const [clusterFilter, setClusterFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('search_volume');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [copyFeedback, setCopyFeedback] = useState<{ id: string; status: CopyStatus } | null>(null);
+  const keywordIdsKey = `${snapshotId ?? 'no-snapshot'}:${JSON.stringify(keywords.map((keyword) => keyword.id))}`;
+  const [selection, setSelection] = useState<SelectionState>(() => ({
+    keywordIdsKey,
+    ids: new Set(),
+  }));
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyRequestRef = useRef(0);
+
+  const clusterOptions = useMemo(
+    () => Array.from(new Set(keywords.map((item) => item.cluster).filter((cluster): cluster is string => Boolean(cluster)))).sort(),
+    [keywords],
+  );
+  const effectiveClusterFilter = clusterFilter === 'all' || clusterOptions.includes(clusterFilter)
+    ? clusterFilter
+    : 'all';
+
+  const selectedIds = selection.keywordIdsKey === keywordIdsKey ? selection.ids : new Set<string>();
+
+  useEffect(() => {
+    return () => {
+      copyRequestRef.current += 1;
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   // Sorting handler
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
       setSortOrder('desc');
@@ -76,7 +113,7 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
           return false;
         }
         // Cluster filter
-        if (clusterFilter !== 'all' && item.cluster !== clusterFilter) {
+        if (effectiveClusterFilter !== 'all' && item.cluster !== effectiveClusterFilter) {
           return false;
         }
         // Difficulty filter
@@ -94,44 +131,113 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
         const valA = a[sortField];
         const valB = b[sortField];
 
+        if (valA === null && valB === null) return 0;
+        if (valA === null) return 1;
+        if (valB === null) return -1;
+
         if (typeof valA === 'string' && typeof valB === 'string') {
           return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         }
 
-        const numA = (valA as number) ?? -1;
-        const numB = (valB as number) ?? -1;
+        const numA = valA as number;
+        const numB = valB as number;
         return sortOrder === 'asc' ? numA - numB : numB - numA;
       });
-  }, [keywords, filterQuery, intentFilter, difficultyFilter, clusterFilter, sortField, sortOrder]);
+  }, [keywords, filterQuery, intentFilter, difficultyFilter, effectiveClusterFilter, sortField, sortOrder]);
 
-  const copyKeyword = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const visibleIds = useMemo(() => processedKeywords.map((keyword) => keyword.id), [processedKeywords]);
+  const selectedVisibleCount = visibleIds.reduce(
+    (count, id) => count + (selectedIds.has(id) ? 1 : 0),
+    0,
+  );
+  const allVisibleSelected = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisibleSelected;
+    }
+  }, [someVisibleSelected]);
+
+  const clusterSummaries = useMemo<ClusterSummary[]>(() => {
+    const groups = new Map<string, KeywordResult[]>();
+
+    processedKeywords.forEach((keyword) => {
+      const name = keyword.cluster || 'Unclustered';
+      groups.set(name, [...(groups.get(name) || []), keyword]);
+    });
+
+    return Array.from(groups, ([name, clusterKeywords]) => {
+      const difficultyValues = clusterKeywords
+        .map((keyword) => keyword.keyword_difficulty)
+        .filter((difficulty): difficulty is number => difficulty !== null);
+      const intentCounts = new Map<string, number>();
+
+      clusterKeywords.forEach((keyword) => {
+        const intent = keyword.intent || 'Unclassified';
+        intentCounts.set(intent, (intentCounts.get(intent) || 0) + 1);
+      });
+
+      const dominantIntent = Array.from(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unclassified';
+
+      return {
+        name,
+        keywords: clusterKeywords,
+        totalVolume: clusterKeywords.reduce((sum, keyword) => sum + (keyword.search_volume ?? 0), 0),
+        averageDifficulty: difficultyValues.length > 0
+          ? Math.round(difficultyValues.reduce((sum, difficulty) => sum + difficulty, 0) / difficultyValues.length)
+          : null,
+        dominantIntent,
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [processedKeywords]);
+
+  const copyKeyword = async (id: string, keyword: string) => {
+    const requestId = ++copyRequestRef.current;
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    setCopyFeedback(null);
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable');
+      }
+      await navigator.clipboard.writeText(keyword);
+      if (requestId !== copyRequestRef.current) return;
+      setCopyFeedback({ id, status: 'success' });
+    } catch {
+      if (requestId !== copyRequestRef.current) return;
+      setCopyFeedback({ id, status: 'error' });
+    }
+
+    copyTimerRef.current = setTimeout(() => {
+      if (requestId === copyRequestRef.current) setCopyFeedback(null);
+    }, 2000);
   };
 
   // Batch Selection
   const toggleSelectAll = () => {
-    if (selectedIds.size === processedKeywords.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(processedKeywords.map((k) => k.id)));
-    }
+    setSelection((current) => {
+      const next = new Set(current.keywordIdsKey === keywordIdsKey ? current.ids : []);
+      visibleIds.forEach((id) => {
+        if (allVisibleSelected) next.delete(id);
+        else next.add(id);
+      });
+      return { keywordIdsKey, ids: next };
+    });
   };
 
   const toggleSelectRow = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedIds(next);
+    setSelection((current) => {
+      const next = new Set(current.keywordIdsKey === keywordIdsKey ? current.ids : []);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { keywordIdsKey, ids: next };
+    });
   };
 
   const handleExportSelectedCSV = () => {
     const targetKeywords = selectedIds.size > 0
-      ? processedKeywords.filter((k) => selectedIds.has(k.id))
+      ? keywords.filter((keyword) => selectedIds.has(keyword.id))
       : processedKeywords;
 
     exportKeywordsToCSV(
@@ -162,7 +268,7 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
           ))}
         </div>
         <p className="mt-6 text-center text-xs text-slate-400">
-          Simulating real-time keyword retrieval and metrics calculation...
+          Demo UI preview: looking for an exact bundled research snapshot...
         </p>
       </div>
     );
@@ -173,21 +279,22 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-8 text-center shadow-xs">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-          <AlertTriangle className="h-6 w-6" />
+          <AlertTriangle className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="mt-4 text-base font-bold text-rose-900">
-          Provider Request Failed (Demo Error Simulation)
+          Provider Error UI Preview
         </h3>
         <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-rose-700">
-          <strong>FR-09 Compliant Error:</strong> The external SEO data provider returned a 504 Gateway Timeout. The application preserved previous research and has not fabricated placeholder numbers.
+          This is a visual error-state preview. No live provider request was made, no HTTP status was received, and no replacement metrics were generated.
         </p>
         <div className="mt-5 flex justify-center gap-3">
           <button
+            type="button"
             onClick={onResetState}
             className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Reset to Demo Data
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+            Return to Loaded Snapshot
           </button>
         </div>
       </div>
@@ -199,21 +306,22 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
     return (
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-8 text-center shadow-xs">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-          <AlertTriangle className="h-6 w-6" />
+          <AlertTriangle className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="mt-4 text-base font-bold text-amber-950">
-          SEO Provider Rate Limit Exceeded (HTTP 429)
+          Rate-Limit UI Preview
         </h3>
         <p className="mx-auto mt-2 max-w-lg text-xs leading-relaxed text-amber-800">
-          Per PRD FR-09: The configured provider account has reached its burst query quota. Backoff cooldown active (retry in 60s). Existing cached records remain safe and exportable.
+          This preview demonstrates how a provider limit would be presented. No live quota, cooldown, or retry time is available in the static demo.
         </p>
         <div className="mt-5 flex justify-center gap-3">
           <button
+            type="button"
             onClick={onResetState}
             className="flex items-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-800"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Restore Normal Demo View
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+            Return to Loaded Snapshot
           </button>
         </div>
       </div>
@@ -221,24 +329,25 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
   }
 
   // Render State 4: Empty State
-  if (demoState === 'empty' || (keywords.length === 0 && !filterQuery)) {
+  if (demoState === 'empty' || keywords.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-xs">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-          <Layers className="h-6 w-6" />
+          <Layers className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="mt-4 text-sm font-bold text-slate-800">No Keywords Discovered</h3>
         <p className="mx-auto mt-1 max-w-sm text-xs text-slate-500">
           No keyword opportunities were found for the selected seed query and market. Try broadening the search term or switching the target country.
         </p>
-        <div className="mt-5">
+        {snapshotId && <div className="mt-5">
           <button
+            type="button"
             onClick={onResetState}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
           >
-            Load Sample Demo Keywords
+            Return to Loaded Snapshot
           </button>
-        </div>
+        </div>}
       </div>
     );
   }
@@ -246,38 +355,47 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-xs">
       {/* Table Toolbar */}
-      <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
         {/* Left: View Mode Toggle & In-table Filter Input */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
           {/* View mode toggle */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+          <div
+            className="flex w-full items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 sm:w-auto"
+            role="group"
+            aria-label="Keyword display mode"
+          >
             <button
+              type="button"
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+              aria-pressed={viewMode === 'table'}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition sm:flex-none ${
                 viewMode === 'table' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <TableIcon className="h-3.5 w-3.5" />
+              <TableIcon className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Table</span>
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('clusters')}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+              aria-pressed={viewMode === 'clusters'}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition sm:flex-none ${
                 viewMode === 'clusters' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <FolderTree className="h-3.5 w-3.5" />
+              <FolderTree className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Clusters</span>
             </button>
           </div>
 
-          <div className="relative min-w-[200px]">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <div className="relative min-w-0 sm:min-w-[200px]">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <input
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               placeholder="Filter keyword list..."
+              aria-label="Filter keywords by text"
               className="w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
@@ -286,7 +404,7 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
           <select
             value={intentFilter}
             onChange={(e) => setIntentFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none"
+            className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none"
             aria-label="Filter by Search Intent"
           >
             <option value="all">Intent: All</option>
@@ -299,7 +417,7 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
           <select
             value={difficultyFilter}
             onChange={(e) => setDifficultyFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none"
+            className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none"
             aria-label="Filter by Keyword Difficulty"
           >
             <option value="all">KD: All Difficulties</option>
@@ -310,51 +428,66 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
 
           {/* Cluster Filter */}
           <select
-            value={clusterFilter}
+            value={effectiveClusterFilter}
             onChange={(e) => setClusterFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none"
+            className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none"
             aria-label="Filter by Topical Cluster"
           >
             <option value="all">Cluster: All</option>
-            {DEMO_CLUSTERS.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
+            {clusterOptions.map((cluster) => (
+              <option key={cluster} value={cluster}>
+                {cluster}
               </option>
             ))}
           </select>
         </div>
 
         {/* Right Actions: Batch Exporter */}
-        <div className="flex items-center justify-between gap-3 sm:justify-end">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
           <span className="text-xs text-slate-500">
             {selectedIds.size > 0 ? (
-              <strong className="text-indigo-600 font-bold">{selectedIds.size} selected</strong>
+              <strong className="text-indigo-600 font-bold">
+                {selectedIds.size} selected{selectedVisibleCount !== selectedIds.size ? ` (${selectedVisibleCount} visible)` : ''}
+              </strong>
             ) : (
               <span>Showing <strong className="text-slate-800">{processedKeywords.length}</strong> of {keywords.length}</span>
             )}
           </span>
 
           <button
+            type="button"
             onClick={handleExportSelectedCSV}
-            disabled={processedKeywords.length === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+            disabled={selectedIds.size === 0 && processedKeywords.length === 0}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 sm:w-auto"
             title="Export to CSV"
           >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
-            <span>{selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export All CSV'}</span>
+            <Download className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
+            <span>{selectedIds.size > 0
+              ? `Export Selected (${selectedIds.size})`
+              : `Export Filtered (${processedKeywords.length})`}</span>
           </button>
         </div>
       </div>
 
       {/* CLUSTERS VIEW (Alternative representation) */}
       {viewMode === 'clusters' ? (
-        <div className="p-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {DEMO_CLUSTERS.map((cluster) => {
-              const clusterKeywords = keywords.filter((k) => k.cluster === cluster.name);
-              return (
-                <div key={cluster.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition hover:bg-white hover:shadow-xs">
-                  <div className="flex items-start justify-between">
+        <div className="p-4 sm:p-5">
+          {clusterSummaries.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-500">
+              No keywords match the current text, intent, difficulty, and cluster filters.
+            </div>
+          ) : (
+            <>
+              <p className="mb-3 text-xs text-slate-500" aria-live="polite">
+                Showing <strong className="text-slate-800">{clusterSummaries.length}</strong>{' '}
+                {clusterSummaries.length === 1 ? 'cluster' : 'clusters'} from the{' '}
+                <strong className="text-slate-800">{processedKeywords.length}</strong> filtered{' '}
+                {processedKeywords.length === 1 ? 'keyword' : 'keywords'}.
+              </p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {clusterSummaries.map((cluster) => (
+                <div key={cluster.name} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition hover:bg-white hover:shadow-xs">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <span className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
                         Topical Cluster
@@ -366,80 +499,94 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
                     </span>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-3 text-xs text-slate-600">
-                    <span>{clusterKeywords.length} keywords</span>
-                    <span>•</span>
-                    <span className="font-semibold text-emerald-700">Avg KD {cluster.avgDifficulty}</span>
-                    <span>•</span>
-                    <span className="text-slate-500">Intent: {cluster.intent}</span>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                    <span>{cluster.keywords.length} {cluster.keywords.length === 1 ? 'keyword' : 'keywords'}</span>
+                    <span aria-hidden="true">&bull;</span>
+                    <span className="font-semibold text-emerald-700">Avg KD {cluster.averageDifficulty ?? 'N/A'}</span>
+                    <span aria-hidden="true">&bull;</span>
+                    <span className="text-slate-500">Dominant intent: {cluster.dominantIntent}</span>
                   </div>
 
                   {/* Top keywords in cluster */}
                   <div className="mt-3 space-y-1.5 border-t border-slate-200/60 pt-2.5">
-                    {clusterKeywords.slice(0, 3).map((kw) => (
-                      <div key={kw.id} className="flex items-center justify-between text-xs text-slate-700">
-                        <span className="truncate max-w-[220px]">{kw.keyword}</span>
+                    {cluster.keywords.slice(0, 3).map((kw) => (
+                      <div key={kw.id} className="flex min-w-0 items-center justify-between gap-3 text-xs text-slate-700">
+                        <span className="min-w-0 truncate">{kw.keyword}</span>
                         <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono text-slate-500">
-                          <span>{kw.search_volume?.toLocaleString()} vol</span>
-                          <span className="font-semibold text-slate-800">KD {kw.keyword_difficulty}</span>
+                          <span>{kw.search_volume?.toLocaleString() ?? 'N/A'} vol</span>
+                          <span className="font-semibold text-slate-800">KD {kw.keyword_difficulty ?? 'N/A'}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         /* TABLE VIEW */
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
+        <div className="overflow-x-auto" role="region" aria-label="Keyword results table" tabIndex={0}>
+          <table className="w-full min-w-[980px] border-collapse text-left text-xs">
+            <caption className="sr-only">
+              Keyword evidence for {countryCode} in {languageCode}
+            </caption>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <th className="py-3 pl-4 pr-2 w-8">
-                  <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700" aria-label="Select all rows">
-                    {selectedIds.size === processedKeywords.length && processedKeywords.length > 0 ? (
-                      <CheckSquare className="h-4 w-4 text-indigo-600" />
-                    ) : (
-                      <Square className="h-4 w-4" />
-                    )}
-                  </button>
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAll}
+                    disabled={visibleIds.length === 0}
+                    aria-label={`${allVisibleSelected ? 'Deselect' : 'Select'} all ${visibleIds.length} visible keywords`}
+                    className="h-4 w-4 rounded border-slate-300 accent-indigo-600 disabled:opacity-50"
+                  />
                 </th>
-                <th className="py-3 px-3">
+                <th className="py-3 px-3" aria-sort={sortField === 'keyword' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <button
+                    type="button"
                     onClick={() => handleSort('keyword')}
                     className="flex items-center gap-1 hover:text-slate-900 transition"
+                    aria-label={`Sort by keyword ${sortField === 'keyword' && sortOrder === 'asc' ? 'descending' : 'ascending'}`}
                   >
                     <span>Keyword &amp; 12-mo Trend</span>
-                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                    <ArrowUpDown className="h-3 w-3 text-slate-400" aria-hidden="true" />
                   </button>
                 </th>
-                <th className="px-3 py-3 text-right">
+                <th className="px-3 py-3 text-right" aria-sort={sortField === 'search_volume' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <button
+                    type="button"
                     onClick={() => handleSort('search_volume')}
                     className="flex items-center justify-end gap-1 hover:text-slate-900 transition w-full"
+                    aria-label={`Sort by search volume ${sortField === 'search_volume' && sortOrder === 'asc' ? 'descending' : 'ascending'}`}
                   >
                     <span>Search Volume</span>
-                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                    <ArrowUpDown className="h-3 w-3 text-slate-400" aria-hidden="true" />
                   </button>
                 </th>
-                <th className="px-3 py-3 text-center">
+                <th className="px-3 py-3 text-center" aria-sort={sortField === 'keyword_difficulty' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <button
+                    type="button"
                     onClick={() => handleSort('keyword_difficulty')}
                     className="flex items-center justify-center gap-1 hover:text-slate-900 transition w-full"
+                    aria-label={`Sort by keyword difficulty ${sortField === 'keyword_difficulty' && sortOrder === 'asc' ? 'descending' : 'ascending'}`}
                   >
                     <span>Difficulty (KD)</span>
-                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                    <ArrowUpDown className="h-3 w-3 text-slate-400" aria-hidden="true" />
                   </button>
                 </th>
-                <th className="px-3 py-3 text-right">
+                <th className="px-3 py-3 text-right" aria-sort={sortField === 'cpc' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <button
+                    type="button"
                     onClick={() => handleSort('cpc')}
                     className="flex items-center justify-end gap-1 hover:text-slate-900 transition w-full"
+                    aria-label={`Sort by CPC ${sortField === 'cpc' && sortOrder === 'asc' ? 'descending' : 'ascending'}`}
                   >
                     <span>CPC (USD)</span>
-                    <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                    <ArrowUpDown className="h-3 w-3 text-slate-400" aria-hidden="true" />
                   </button>
                 </th>
                 <th className="px-3 py-3 text-center">Search Intent</th>
@@ -451,20 +598,23 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
               {processedKeywords.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-xs text-slate-400">
-                    No matching keywords found for filter &quot;{filterQuery}&quot;.
+                    No keywords match the current text, intent, difficulty, and cluster filters.
                   </td>
                 </tr>
               ) : (
                 processedKeywords.map((item) => {
-                  const kd = item.keyword_difficulty ?? 0;
-                  let kdColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                  let kdBarColor = 'bg-emerald-500';
-                  if (kd >= 60) {
+                  const kd = item.keyword_difficulty;
+                  let kdColor = 'border-slate-200 bg-slate-50 text-slate-500';
+                  let kdBarColor = 'bg-slate-300';
+                  if (kd !== null && kd >= 60) {
                     kdColor = 'bg-rose-50 text-rose-700 border-rose-200';
                     kdBarColor = 'bg-rose-500';
-                  } else if (kd >= 30) {
+                  } else if (kd !== null && kd >= 30) {
                     kdColor = 'bg-amber-50 text-amber-700 border-amber-200';
                     kdBarColor = 'bg-amber-500';
+                  } else if (kd !== null) {
+                    kdColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    kdBarColor = 'bg-emerald-500';
                   }
 
                   let intentBadge = 'bg-slate-100 text-slate-700';
@@ -478,13 +628,13 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
                     <tr key={item.id} className={`hover:bg-slate-50/80 transition ${isRowSelected ? 'bg-indigo-50/40' : ''}`}>
                       {/* Checkbox */}
                       <td className="py-3 pl-4 pr-2">
-                        <button onClick={() => toggleSelectRow(item.id)} className="text-slate-400 hover:text-slate-700">
-                          {isRowSelected ? (
-                            <CheckSquare className="h-4 w-4 text-indigo-600" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </button>
+                        <input
+                          type="checkbox"
+                          checked={isRowSelected}
+                          onChange={() => toggleSelectRow(item.id)}
+                          aria-label={`Select ${item.keyword}`}
+                          className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+                        />
                       </td>
 
                       {/* Keyword + 12 Mo Mini Sparkline */}
@@ -493,16 +643,28 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-900">{item.keyword}</span>
                             <button
+                              type="button"
                               onClick={() => copyKeyword(item.id, item.keyword)}
-                              className="text-slate-300 hover:text-slate-600 transition"
-                              title="Copy keyword"
+                              className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 transition"
+                              aria-label={`Copy ${item.keyword}`}
+                              title={copyFeedback?.id === item.id && copyFeedback.status === 'error' ? 'Copy failed' : 'Copy keyword'}
                             >
-                              {copiedId === item.id ? (
-                                <Check className="h-3 w-3 text-emerald-600" />
+                              {copyFeedback?.id === item.id && copyFeedback.status === 'success' ? (
+                                <Check className="h-3 w-3 text-emerald-600" aria-hidden="true" />
+                              ) : copyFeedback?.id === item.id && copyFeedback.status === 'error' ? (
+                                <AlertTriangle className="h-3 w-3 text-rose-600" aria-hidden="true" />
                               ) : (
-                                <Copy className="h-3 w-3" />
+                                <Copy className="h-3 w-3" aria-hidden="true" />
                               )}
                             </button>
+                            {copyFeedback?.id === item.id && (
+                              <span
+                                className={copyFeedback.status === 'success' ? 'text-[10px] text-emerald-700' : 'text-[10px] text-rose-700'}
+                                role={copyFeedback.status === 'error' ? 'alert' : 'status'}
+                              >
+                                {copyFeedback.status === 'success' ? 'Copied' : 'Copy failed'}
+                              </span>
+                            )}
                           </div>
                           {item.cluster && (
                             <span className="text-[10px] text-slate-400">{item.cluster}</span>
@@ -567,6 +729,7 @@ export const KeywordTable: React.FC<KeywordTableProps> = ({
                       {/* Actions */}
                       <td className="py-3 pl-3 pr-4 text-right">
                         <button
+                          type="button"
                           onClick={() => onInspectSerp(item)}
                           className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 transition hover:bg-indigo-100"
                           title="Inspect top ranking URLs and competitor domains"

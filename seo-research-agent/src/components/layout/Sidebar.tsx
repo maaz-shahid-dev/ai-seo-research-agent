@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Search, 
+  Layers3,
   LineChart, 
   Sparkles,
   Globe2,
@@ -17,6 +18,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { ViewTab, Project, UserRole } from '@/types/seo';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 
 interface SidebarProps {
   currentTab: ViewTab;
@@ -41,9 +43,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentRole,
   onOpenAuthModal,
 }) => {
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useDialogFocus<HTMLElement>(isOpenMobile, onCloseMobile, mobileCloseRef);
   const navItems: { id: ViewTab; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'keywords', label: 'Keyword Research', icon: Search, badge: 'Core' },
+    { id: 'coverage', label: 'Content Coverage', icon: Layers3, badge: 'Derived' },
     { id: 'serp', label: 'SERP Analysis', icon: LineChart, badge: '10' },
     { id: 'ai_studio', label: 'AI Evidence Studio', icon: Sparkles, badge: 'FR-05' },
     { id: 'market_comparison', label: 'Market Intelligence', icon: Globe2, badge: 'FR-03' },
@@ -52,21 +57,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'admin', label: 'Settings & Admin', icon: ShieldCheck },
   ];
 
+  const visibleNavItems = navItems.filter((item) => item.id !== 'admin' || currentRole === 'admin');
+
+  useEffect(() => {
+    if (currentRole === 'researcher' && currentTab === 'admin') {
+      onSelectTab('overview');
+    }
+  }, [currentRole, currentTab, onSelectTab]);
+
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpenMobile && (
-        <div 
+        <button
+          type="button"
           className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
           onClick={onCloseMobile}
-          aria-hidden="true"
+          aria-label="Close navigation menu"
+          tabIndex={-1}
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          isOpenMobile ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+        ref={sidebarRef}
+        id="primary-sidebar"
+        aria-label="Application navigation"
+        role={isOpenMobile ? 'dialog' : undefined}
+        aria-modal={isOpenMobile ? true : undefined}
+        tabIndex={-1}
+        className={`fixed bottom-0 left-0 top-0 z-50 flex w-72 max-w-[calc(100vw-2rem)] flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          isOpenMobile
+            ? 'visible translate-x-0 shadow-2xl'
+            : 'invisible -translate-x-full lg:visible lg:translate-x-0'
         }`}
       >
         {/* Header / Logo */}
@@ -84,27 +107,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
           <button
+            ref={mobileCloseRef}
+            type="button"
             onClick={onCloseMobile}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 lg:hidden"
-            aria-label="Close sidebar"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 lg:hidden"
+            aria-label="Close navigation menu"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Project Switcher */}
         <div className="border-b border-slate-100 p-4">
-          <label className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+          <label htmlFor="project-switcher" className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
             Active Project
           </label>
           <div className="mt-1.5">
             <select
+              id="project-switcher"
               value={activeProject.id}
               onChange={(e) => {
                 const found = projects.find((p) => p.id === e.target.value);
                 if (found) onSelectProject(found);
               }}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-100 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-100 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {projects.map((proj) => (
                 <option key={proj.id} value={proj.id}>
@@ -115,26 +141,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
             <span>Market: {activeProject.target_country} / {activeProject.target_language}</span>
-            <span className="text-indigo-600 font-medium">{activeProject.keyword_count} keywords</span>
+            <span className="font-medium text-indigo-600">{activeProject.keyword_count ?? 0} keywords</span>
           </div>
         </div>
 
         {/* Primary Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Main Navigation">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Primary navigation">
           <div className="px-2 py-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
             Navigation
           </div>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => {
                   onSelectTab(item.id);
                   onCloseMobile();
                 }}
-                className={`group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-medium transition ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`group flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
                   isActive
                     ? 'bg-indigo-50 text-indigo-700 font-semibold'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -167,19 +195,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Active Role & User Bar */}
         <div className="border-t border-slate-100 p-3">
           <button
+            type="button"
             onClick={onOpenAuthModal}
-            className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2 text-left hover:bg-slate-100 transition"
+            className="flex min-h-11 w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2 text-left transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             title="Click to switch role (Admin vs Researcher demo)"
+            aria-label={`Current role: ${currentRole}. Open role switcher`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-100 text-indigo-700">
                 <UserCheck className="h-4 w-4" />
               </div>
-              <div>
-                <span className="block text-xs font-bold text-slate-900 capitalize">
+              <div className="min-w-0">
+                <span className="block truncate text-xs font-bold capitalize text-slate-900">
                   {currentRole === 'admin' ? 'Demo Admin' : 'Demo Researcher'}
                 </span>
-                <span className="block text-[10px] text-slate-400">
+                <span className="block truncate text-[10px] text-slate-500">
                   Role: {currentRole} (Click to switch)
                 </span>
               </div>

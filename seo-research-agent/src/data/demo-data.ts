@@ -1,4 +1,4 @@
-import { 
+import type {
   KeywordResult, 
   SERPResult, 
   AIAnalysis, 
@@ -8,7 +8,8 @@ import {
   KeywordCluster,
   CountryMarketComparison,
   ResearchRun,
-  SavedReport
+  SavedReport,
+  ResearchSnapshot
 } from '@/types/seo';
 
 export const DEMO_COUNTRIES: CountryOption[] = [
@@ -44,8 +45,8 @@ export const DEMO_PROJECTS: Project[] = [
     target_language: 'en',
     created_at: '2026-10-10 14:22:00 UTC',
     updated_at: '2026-10-13 07:45:00 UTC',
-    keyword_count: 24,
-    runs_count: 4,
+    keyword_count: 18,
+    runs_count: 3,
   },
   {
     id: 'proj_demo_2',
@@ -57,7 +58,7 @@ export const DEMO_PROJECTS: Project[] = [
     created_at: '2026-10-08 09:15:00 UTC',
     updated_at: '2026-10-12 18:30:00 UTC',
     keyword_count: 18,
-    runs_count: 2,
+    runs_count: 1,
   },
   {
     id: 'proj_demo_3',
@@ -69,7 +70,7 @@ export const DEMO_PROJECTS: Project[] = [
     created_at: '2026-10-05 11:00:00 UTC',
     updated_at: '2026-10-11 16:40:00 UTC',
     keyword_count: 14,
-    runs_count: 2,
+    runs_count: 1,
   },
   {
     id: 'proj_demo_4',
@@ -90,17 +91,17 @@ export const DEMO_CLUSTERS: KeywordCluster[] = [
     id: 'cluster_1',
     name: 'Workflow & Automation Listicles',
     keywordsCount: 6,
-    totalVolume: 27800,
-    avgDifficulty: 42,
+    totalVolume: 27320,
+    avgDifficulty: 30,
     topKeyword: 'best ai tools for productivity',
     intent: 'Commercial',
   },
   {
     id: 'cluster_2',
     name: 'Free & Open Source Alternatives',
-    keywordsCount: 5,
-    totalVolume: 13380,
-    avgDifficulty: 24,
+    keywordsCount: 4,
+    totalVolume: 14250,
+    avgDifficulty: 26,
     topKeyword: 'free ai productivity tools',
     intent: 'Informational',
   },
@@ -108,17 +109,17 @@ export const DEMO_CLUSTERS: KeywordCluster[] = [
     id: 'cluster_3',
     name: 'Team Collaboration & Scheduling',
     keywordsCount: 5,
-    totalVolume: 10700,
-    avgDifficulty: 38,
+    totalVolume: 12100,
+    avgDifficulty: 42,
     topKeyword: 'ai scheduling assistant software',
     intent: 'Transactional',
   },
   {
     id: 'cluster_4',
     name: 'Self-Hosted & Niche Tools',
-    keywordsCount: 4,
-    totalVolume: 4200,
-    avgDifficulty: 20,
+    keywordsCount: 3,
+    totalVolume: 3480,
+    avgDifficulty: 19,
     topKeyword: 'notion ai alternative self hosted',
     intent: 'Commercial',
   },
@@ -541,18 +542,18 @@ export const DEMO_AI_ANALYSIS_VARIANTS: Record<string, AIAnalysis> = {
     id: 'ai_ana_creator',
     research_run_id: 'run_demo_01',
     perspective: 'Blogger / Content Creator',
-    summary: 'For an independent creator or affiliate site, high-authority SaaS domains (Zapier DR 91, ClickUp DR 88) dominate the generic top-10 listicle. However, positions #3 (DR 34) and #5 (DR 26) prove that personal, opinionated testing case studies can break through. The highest leverage path is to target long-tail comparisons ("notion ai alternative self hosted", KD 19) and free spreadsheet downloads.',
+    summary: 'The captured head-term SERP includes high-authority SaaS domains (Zapier DR 91 and ClickUp DR 88) alongside lower authority estimates at positions #3 (DR 34) and #5 (DR 26). That mix supports testing differentiated, experience-led content; it does not guarantee rankings. Lower-difficulty fixture rows include "notion ai alternative self hosted" (KD 19) and "ai tools comparison spreadsheet" (KD 15).',
     opportunity_signals: [
-      '2 of the top 5 SERP competitors have Domain Rating under 35, showing personal experiential content outperforms generic summaries.',
-      'CPC values range from $2.45 to $5.10, indicating lucrative affiliate commissions for software signups.',
-      'Featured snippet opportunities exist on question queries like "how to automate workflows with ai" (KD 26).',
+      '2 of the top 5 captured SERP rows have Domain Rating estimates below 35; their formats are useful candidates for closer qualitative review.',
+      'Measured CPC values in this snapshot range from $0.65 to $9.40, indicating varied advertiser demand across the keyword set.',
+      'The question query "how to automate workflows with ai" has KD 26 in the fixture and can be tested as a focused content brief.',
     ],
     risks: [
-      'High churn in AI tools means listicles must be refreshed every 90 days to avoid obsolescence.',
-      'Google AI Overviews are actively tested on head informational queries, reducing raw click-through rates on position #1.',
+      'The static snapshot does not measure how quickly AI-tool listings become outdated; refresh cadence needs separate validation.',
+      'Several captured head-term competitors have high authority estimates, so a new page may need a narrower angle and original evidence.',
     ],
     missing_evidence: [
-      'Exact search feature layout (AI Overview box vs. PAA accordion) needs live HTML scraping validation.',
+      'AI Overview, featured snippet, People Also Ask, and paid-ad presence were not captured in this snapshot.',
       'Affiliate payout rates and average conversion rates per software vendor are unverified.',
     ],
     next_steps: [
@@ -567,15 +568,15 @@ export const DEMO_AI_ANALYSIS_VARIANTS: Record<string, AIAnalysis> = {
     id: 'ai_ana_saas',
     research_run_id: 'run_demo_01',
     perspective: 'SaaS Product Founder',
-    summary: 'From a software founder perspective, the search landscape reveals user fatigue with "all-in-one" AI hype. Queries around "self-hosted" (KD 19), "offline voice dictation" (KD 18), and "open source" (KD 22) exhibit explosive growth. Building a lightweight, privacy-conscious utility with a generous free tier aligns with unmet intent.',
+    summary: 'The fixture contains comparatively low difficulty estimates for "self-hosted" (KD 19), "offline voice dictation" (KD 18), and "open source" (KD 22) terms. Those rows justify testing a focused local-first or privacy-oriented utility concept, but the snapshot does not measure product demand, adoption, or market fit.',
     opportunity_signals: [
-      'Fast-growing demand for self-hosted and privacy-first AI tools where incumbents (Notion, Zapier) have structural cloud lock-in.',
-      'Position #7 is held by a free interactive calculator (workflowbuilder.app, DR 39), proving interactive utility tools rank rapidly.',
-      'High willingness to pay demonstrated by $4.80 - $9.40 transactional CPC on enterprise search terms.',
+      'Self-hosted, offline, and open-source fixture rows have KD estimates between 18 and 22 and can be prioritized for validation.',
+      'Captured position #7 is a free interactive tool (workflowbuilder.app, DR estimate 39), making utility content a format worth testing.',
+      'Measured CPC reaches $9.40 on the enterprise term, which signals advertiser competition but does not establish willingness to pay.',
     ],
     risks: [
-      'Big tech bundling (Microsoft Copilot, Google Workspace AI) risks commoditizing standalone single-feature apps.',
-      'User acquisition costs via Google Ads are prohibitive for bootstrapped products ($5+ CPC).',
+      'The SEO snapshot contains no product usage, retention, or competitor-pricing evidence.',
+      'CPC values alone cannot determine customer acquisition cost or whether paid acquisition is viable.',
     ],
     missing_evidence: [
       'Customer lifetime value (LTV) and churn benchmarks across B2B productivity tools are not in SEO data.',
@@ -593,14 +594,14 @@ export const DEMO_AI_ANALYSIS_VARIANTS: Record<string, AIAnalysis> = {
     id: 'ai_ana_agency',
     research_run_id: 'run_demo_01',
     perspective: 'Freelance Consultant',
-    summary: 'For SEO and operations consultants, clients are overwhelmed by tooling choices. Offering an "AI Workflow Audit" service targeting mid-tier enterprises allows charging premium advisory fees without building custom software.',
+    summary: 'The fixture includes commercial and transactional terms that can support a hypothesis for an AI workflow audit service. The data does not measure consulting demand or pricing, so the service concept should be validated with customer interviews before investment.',
     opportunity_signals: [
-      'Enterprise teams search for "enterprise ai productivity platform" ($9.40 CPC), indicating deep organizational budget.',
-      'Companies lack internal expertise to evaluate compliance and security of third-party AI assistants.',
+      'The term "enterprise ai productivity platform" has a measured CPC of $9.40 and KD 62 in this fixture.',
+      'Commercial and transactional intent labels provide starting points for service-page and interview hypotheses.',
     ],
     risks: [
-      'Long corporate sales cycles (3-6 months) for enterprise workflow implementation.',
-      'Liability regarding data privacy and GDPR/HIPAA compliance when recommending AI vendors.',
+      'The snapshot contains no sales-cycle, close-rate, or implementation-cost evidence.',
+      'Compliance requirements and professional liability are outside this keyword dataset and need specialist review.',
     ],
     missing_evidence: [
       'Security certifications (SOC2, ISO) required by enterprise decision makers not tracked in keyword data.',
@@ -707,7 +708,7 @@ export const DEMO_RESEARCH_RUNS: ResearchRun[] = [
     country: 'US',
     language: 'en',
     provider: 'Mock Demo Adapter',
-    keywords_found: 24,
+    keywords_found: 18,
     status: 'completed',
     started_at: '2026-10-13 07:44:10 UTC',
     completed_at: '2026-10-13 07:45:00 UTC',
@@ -748,6 +749,30 @@ export const DEMO_RESEARCH_RUNS: ResearchRun[] = [
     started_at: '2026-10-10 14:15:00 UTC',
     completed_at: '2026-10-10 14:15:52 UTC',
   },
+  {
+    id: 'run_demo_05',
+    project_id: 'proj_demo_3',
+    seed_keyword: 'cloud cost optimization tools',
+    country: 'DE',
+    language: 'de',
+    provider: 'Mock Demo Adapter',
+    keywords_found: 14,
+    status: 'completed',
+    started_at: '2026-10-11 16:39:08 UTC',
+    completed_at: '2026-10-11 16:40:00 UTC',
+  },
+  {
+    id: 'run_demo_06',
+    project_id: 'proj_demo_4',
+    seed_keyword: 'local dental clinic sydney',
+    country: 'AU',
+    language: 'en',
+    provider: 'Mock Demo Adapter',
+    keywords_found: 11,
+    status: 'completed',
+    started_at: '2026-10-09 12:09:18 UTC',
+    completed_at: '2026-10-09 12:10:00 UTC',
+  },
 ];
 
 export const DEMO_SAVED_REPORTS: SavedReport[] = [
@@ -758,7 +783,7 @@ export const DEMO_SAVED_REPORTS: SavedReport[] = [
     seed_keyword: 'best ai tools for productivity',
     country: 'US',
     language: 'en',
-    records_count: 24,
+    records_count: 18,
     format: 'CSV',
     created_at: '2026-10-13 07:46 UTC',
   },
@@ -785,3 +810,24 @@ export const DEMO_SAVED_REPORTS: SavedReport[] = [
     created_at: '2026-10-11 16:45 UTC',
   },
 ];
+
+/**
+ * The only complete evidence bundle shipped with this frontend demo. Historical
+ * rows for other projects remain metadata-only and must never be relabeled as
+ * if their underlying keyword/SERP payloads were bundled here.
+ */
+export const DEMO_PRIMARY_SNAPSHOT: ResearchSnapshot = {
+  id: 'snapshot_demo_01',
+  project_id: 'proj_demo_1',
+  seed_keyword: 'best ai tools for productivity',
+  country: 'US',
+  language: 'en',
+  provider: 'Mock Demo Adapter',
+  retrieved_at: '2026-10-13 07:47 UTC',
+  keywords: DEMO_KEYWORDS,
+  serp_results: DEMO_SERP_DATA,
+  analysis: DEMO_AI_ANALYSIS,
+  market_comparisons: DEMO_COUNTRY_COMPARISON,
+};
+
+export const DEMO_RESEARCH_SNAPSHOTS: ResearchSnapshot[] = [DEMO_PRIMARY_SNAPSHOT];

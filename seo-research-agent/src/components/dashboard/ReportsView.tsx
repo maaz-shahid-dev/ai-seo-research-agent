@@ -6,7 +6,7 @@ import {
   CheckCircle, 
   FileSpreadsheet
 } from 'lucide-react';
-import { KeywordResult, SavedReport } from '@/types/seo';
+import type { KeywordResult, SavedReport } from '@/types/seo';
 import { exportKeywordsToCSV } from '@/lib/exportCsv';
 import { DEMO_SAVED_REPORTS } from '@/data/demo-data';
 
@@ -14,36 +14,79 @@ interface ReportsViewProps {
   keywords: KeywordResult[];
   countryCode: string;
   languageCode: string;
+  projectName: string;
+  seedKeyword: string;
 }
+
+interface ReportSnapshot {
+  keywords: KeywordResult[];
+  countryCode: string;
+  languageCode: string;
+  filename: string;
+}
+
+type ReportListItem = SavedReport & {
+  snapshot?: ReportSnapshot;
+};
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
   keywords,
   countryCode,
   languageCode,
+  projectName,
+  seedKeyword,
 }) => {
-  const [reportsList, setReportsList] = useState<SavedReport[]>(DEMO_SAVED_REPORTS);
+  const [reportsList, setReportsList] = useState<ReportListItem[]>(() =>
+    DEMO_SAVED_REPORTS.map((report) => ({ ...report }))
+  );
 
   const handleExport = () => {
-    exportKeywordsToCSV(
-      keywords,
-      countryCode,
-      languageCode,
-      `seo_research_report_${countryCode}_demo.csv`
-    );
+    if (keywords.length === 0) return;
 
-    // Add entry to history
-    const newRep: SavedReport = {
+    const safeSeed = seedKeyword
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 48) || 'keywords';
+    const filename = `seo_research_${countryCode.toLowerCase()}_${safeSeed}_demo.csv`;
+    const snapshotKeywords = keywords.map((keyword) => ({
+      ...keyword,
+      trend: keyword.trend ? [...keyword.trend] : undefined,
+    }));
+
+    const didDownload = exportKeywordsToCSV(snapshotKeywords, countryCode, languageCode, filename);
+    if (!didDownload) return;
+
+    const newRep: ReportListItem = {
       id: `rep_${Date.now()}`,
       name: `${countryCode} Keyword Opportunities Snapshot`,
-      project_name: 'Current Session Active Project',
-      seed_keyword: keywords[0]?.keyword || 'niche search',
+      project_name: projectName,
+      seed_keyword: seedKeyword || 'Not set',
       country: countryCode,
       language: languageCode,
-      records_count: keywords.length,
+      records_count: snapshotKeywords.length,
       format: 'CSV',
       created_at: new Date().toISOString().replace('T', ' ').substring(0, 16) + ' UTC',
+      snapshot: {
+        keywords: snapshotKeywords,
+        countryCode,
+        languageCode,
+        filename,
+      },
     };
-    setReportsList([newRep, ...reportsList]);
+    setReportsList((currentReports) => [newRep, ...currentReports]);
+  };
+
+  const handleSnapshotDownload = (report: ReportListItem) => {
+    if (!report.snapshot) return;
+
+    exportKeywordsToCSV(
+      report.snapshot.keywords,
+      report.snapshot.countryCode,
+      report.snapshot.languageCode,
+      report.snapshot.filename
+    );
   };
 
   return (
@@ -52,7 +95,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">Reports &amp; Data Export Studio</h2>
+            <h1 className="text-lg font-bold text-slate-900">Reports &amp; Data Export Studio</h1>
             <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
               PRD FR-07 Active
             </span>
@@ -63,8 +106,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
 
         <button
+          type="button"
           onClick={handleExport}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-200 transition hover:bg-emerald-700 active:scale-95"
+          disabled={keywords.length === 0}
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-200 transition hover:bg-emerald-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
           <span>Download Active CSV ({keywords.length} records)</span>
@@ -100,7 +145,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span>Escaped Strings: Protected against CSV injection</span>
+                <span>Formula Safety: Spreadsheet commands are forced to plain text</span>
               </div>
             </div>
           </div>
@@ -120,7 +165,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             </div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <span className="text-slate-500">Encoding:</span>
-              <span className="font-semibold text-slate-800">UTF-8 RFC-4180 CSV</span>
+              <span className="font-semibold text-slate-800">UTF-8 BOM / RFC-4180</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Mode:</span>
@@ -129,8 +174,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={handleExport}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-slate-100"
+            disabled={keywords.length === 0}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             <span>Generate &amp; Download CSV</span>
@@ -143,7 +190,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="border-b border-slate-100 px-5 py-4">
           <h3 className="text-sm font-bold text-slate-900">Export History &amp; Saved Reports (PRD FR-07)</h3>
           <p className="text-xs text-slate-500">
-            Past CSV snapshots generated during research tasks.
+            New exports retain an exact in-session snapshot. Seeded demo rows are metadata-only because their original CSV payloads are not stored.
           </p>
         </div>
 
@@ -187,13 +234,24 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     {rep.created_at}
                   </td>
                   <td className="py-3.5 pl-3 pr-5 text-right">
-                    <button
-                      onClick={handleExport}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      <span>Download</span>
-                    </button>
+                    {rep.snapshot ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSnapshotDownload(rep)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                        aria-label={`Download saved snapshot: ${rep.name}`}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Download snapshot</span>
+                      </button>
+                    ) : (
+                      <span
+                        className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500"
+                        title="This demo history row contains metadata only; no original CSV snapshot is available."
+                      >
+                        Metadata only
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

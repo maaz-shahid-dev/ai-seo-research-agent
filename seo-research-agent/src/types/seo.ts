@@ -87,6 +87,25 @@ export interface ResearchRun {
   completed_at?: string;
 }
 
+/**
+ * An immutable bundle of evidence captured for one project, query, and market.
+ * Keeping the context with the results prevents demo data from being relabeled
+ * when a user changes a country, language, project, or seed input.
+ */
+export interface ResearchSnapshot {
+  id: string;
+  project_id: string;
+  seed_keyword: string;
+  country: string;
+  language: string;
+  provider: string;
+  retrieved_at: string;
+  keywords: KeywordResult[];
+  serp_results: Record<string, SERPResult[]>;
+  analysis: AIAnalysis;
+  market_comparisons: CountryMarketComparison[];
+}
+
 export interface CountryOption {
   code: string;
   name: string;
@@ -126,6 +145,7 @@ export interface SavedReport {
 export type ViewTab = 
   | 'overview' 
   | 'keywords' 
+  | 'coverage'
   | 'serp' 
   | 'ai_studio' 
   | 'market_comparison' 

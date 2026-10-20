@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -19,15 +19,22 @@ export const AiEvidenceStudio: React.FC = () => {
   const [activePerspective, setActivePerspective] = useState<'creator' | 'saas' | 'agency'>('creator');
   const [isStreaming, setIsStreaming] = useState(false);
   const [analysis, setAnalysis] = useState<AIAnalysis>(DEMO_AI_ANALYSIS_VARIANTS.creator);
+  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSwitchPerspective = (key: 'creator' | 'saas' | 'agency') => {
+    if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
     setActivePerspective(key);
+    setAnalysis(DEMO_AI_ANALYSIS_VARIANTS[key]);
     setIsStreaming(true);
-    setTimeout(() => {
-      setAnalysis(DEMO_AI_ANALYSIS_VARIANTS[key]);
+    animationTimerRef.current = setTimeout(() => {
       setIsStreaming(false);
+      animationTimerRef.current = null;
     }, 600);
   };
+
+  useEffect(() => () => {
+    if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -35,22 +42,28 @@ export const AiEvidenceStudio: React.FC = () => {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-slate-900">
               AI Niche Evidence Studio (PRD FR-05)
-            </h2>
+            </h1>
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
               Evidence-Grounded Demo
             </span>
           </div>
           <p className="text-xs text-slate-500">
-            Synthesizes retrieved keyword volume and competitor SERP patterns without hallucinated SEO metrics.
+            Interprets the static keyword and competitor snapshot while keeping unsupported evidence gaps explicit.
           </p>
         </div>
 
         {/* Perspective Switcher */}
-        <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+        <div
+          className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs"
+          role="group"
+          aria-label="Analysis perspective"
+        >
           <button
+            type="button"
             onClick={() => handleSwitchPerspective('creator')}
+            aria-pressed={activePerspective === 'creator'}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               activePerspective === 'creator'
                 ? 'bg-indigo-600 text-white shadow-xs'
@@ -61,7 +74,9 @@ export const AiEvidenceStudio: React.FC = () => {
             <span>Content Creator</span>
           </button>
           <button
+            type="button"
             onClick={() => handleSwitchPerspective('saas')}
+            aria-pressed={activePerspective === 'saas'}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               activePerspective === 'saas'
                 ? 'bg-indigo-600 text-white shadow-xs'
@@ -72,7 +87,9 @@ export const AiEvidenceStudio: React.FC = () => {
             <span>SaaS Founder</span>
           </button>
           <button
+            type="button"
             onClick={() => handleSwitchPerspective('agency')}
+            aria-pressed={activePerspective === 'agency'}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               activePerspective === 'agency'
                 ? 'bg-indigo-600 text-white shadow-xs'
@@ -100,7 +117,7 @@ export const AiEvidenceStudio: React.FC = () => {
                     Niche Evaluation Lens: <span className="text-indigo-600 font-semibold">{analysis.perspective}</span>
                   </h3>
                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    FR-05 Verified
+                    Static demo analysis
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
@@ -111,6 +128,7 @@ export const AiEvidenceStudio: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => handleSwitchPerspective(activePerspective)}
                 disabled={isStreaming}
                 className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
@@ -124,9 +142,9 @@ export const AiEvidenceStudio: React.FC = () => {
           {/* Executive Summary Box */}
           <div className="mt-4 rounded-xl border border-indigo-100 bg-white p-4 text-xs leading-relaxed text-slate-700 shadow-2xs">
             {isStreaming ? (
-              <div className="flex items-center gap-2 text-indigo-600">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Synthesizing structured keyword &amp; SERP evidence into perspective report...</span>
+              <div className="flex items-center gap-2 text-indigo-600" role="status" aria-live="polite">
+                <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>Updating the static demo analysis for this perspective...</span>
               </div>
             ) : (
               <>
@@ -209,7 +227,7 @@ export const AiEvidenceStudio: React.FC = () => {
           <span>
             <strong>Product Principle #1:</strong> Evidence before AI conclusions. AI outputs are recommendations to test, never guarantees.
           </span>
-          <span className="font-mono text-indigo-600">Zero Hallucinated Metrics</span>
+          <span className="font-mono text-indigo-600">No metrics generated by this view</span>
         </div>
       </div>
     </div>
