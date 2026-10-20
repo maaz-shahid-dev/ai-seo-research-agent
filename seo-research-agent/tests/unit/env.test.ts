@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   listMissingEnvironmentKeys,
   runtimeEnvironmentSchema,
-} from "@/server/env/schema";
+} from "@/server/config/environment-schema";
 
 describe("runtime environment", () => {
   it("accepts a PostgreSQL URL and a sufficiently long auth secret", () => {
