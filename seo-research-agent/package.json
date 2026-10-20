@@ -12,22 +12,51 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "npm run test:unit && npm run test:legacy",
+    "test:unit": "vitest run",
+    "test:legacy": "node --test tests/*.test.mjs",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check"
   },
   "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
+    "@node-rs/argon2": "2.2.2",
+    "@upstash/ratelimit": "2.2.0",
+    "@upstash/redis": "1.39.0",
+    "drizzle-orm": "0.45.4",
+    "inngest": "4.24.0",
     "lucide-react": "^1.55.0",
     "next": "16.4.0",
+    "next-auth": "5.0.0-beta.32",
+    "openai": "7.17.0",
+    "pino": "10.4.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@electric-sql/pglite": "0.5.10",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/node": "22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "5.0.5",
+    "drizzle-kit": "0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "jsdom": "29.1.1",
+    "msw": "3.0.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "4.23.15",
+    "typescript": "^5",
+    "vitest": "5.0.5"
   }
 }
