@@ -51,16 +51,38 @@ const TEMPLATES: Template[] = [
   { text: (s) => `${s} maintenance`, intent: "informational", share: [0.002, 0.012] },
 ];
 
-/** Words for "seed + letter" autocomplete; each starts with its letter. */
+/** Topic-neutral words for "seed + letter" autocomplete; letters without a natural fit return nothing. */
 const ALPHABET_WORDS: Record<string, string[]> = {
-  a: ["accessories", "alternatives", "at home"], b: ["brands", "buying guide", "benefits"], c: ["comparison", "cost", "cleaning"],
-  d: ["deals", "durability", "diy"], e: ["essentials", "explained", "experts"], f: ["for beginners", "for small spaces", "faq"],
-  g: ["guide", "gift ideas", "grades"], h: ["hacks", "history", "how to choose"], i: ["ideas", "in stock", "inspiration"],
-  j: ["jobs", "journal", "just for beginners"], k: ["kit", "kits for beginners", "key steps"], l: ["list", "lifespan", "lightweight"],
-  m: ["maintenance", "mistakes", "must haves"], n: ["near me", "new", "names"], o: ["online", "options", "on a budget"],
-  p: ["problems", "price", "pros and cons"], q: ["quality", "questions", "quiz"], r: ["reviews", "repair", "rules"],
-  s: ["sale", "size chart", "storage"], t: ["tips", "types", "trends"], u: ["uk", "used", "upgrade"], v: ["vs alternatives", "videos", "variety"],
-  w: ["worth it", "waterproof", "warranty"], x: ["xl"], y: ["youtube", "yearly cost"], z: ["zero waste"],
+  a: ["alternatives", "at home", "advice"], b: ["benefits", "basics", "best practices"], c: ["checklist", "cost", "comparison"],
+  d: ["deals", "definition", "diy"], e: ["examples", "explained", "essentials"], f: ["for beginners", "faq", "free"],
+  g: ["guide", "getting started"], h: ["how to start", "hacks"], i: ["ideas", "in 2026"], k: ["key features"],
+  l: ["list", "learning path"], m: ["mistakes", "methods"], n: ["near me", "news"], o: ["online", "options", "overview"],
+  p: ["price", "pros and cons", "plan"], q: ["questions"], r: ["reviews", "resources", "requirements"],
+  s: ["setup", "strategies"], t: ["tips", "tools", "trends"], u: ["use cases", "updates"], v: ["vs alternatives", "videos"],
+  w: ["worth it", "workflow"], y: ["yearly cost"],
+};
+
+/** Grammatical question suggestions for "question word + seed" queries. */
+const QUESTION_SUGGESTIONS: Record<string, Array<(seed: string) => string>> = {
+  how: [(s) => `how to use ${s}`, (s) => `how to choose ${s}`, (s) => `how to get started with ${s}`],
+  what: [(s) => `what are the best ${s}`, (s) => `what to look for in ${s}`],
+  why: [(s) => `why use ${s}`],
+  when: [(s) => `when to use ${s}`],
+  where: [(s) => `where to find ${s}`],
+  which: [(s) => `which ${s} is best`],
+  can: [(s) => `can beginners use ${s}`],
+  is: [(s) => `is ${s} worth it`],
+  should: [(s) => `should i use ${s}`],
+};
+
+/** Completions for "seed + connector" queries such as "seed for" or "seed vs". */
+const CONNECTOR_SUGGESTIONS: Record<string, string[]> = {
+  for: ["for beginners", "for small business", "for students"],
+  vs: ["vs alternatives"],
+  near: ["near me"],
+  to: ["to avoid"],
+  with: [],
+  without: [],
 };
 
 const BIG_SITES: Array<{ domain: string; titles: (s: string) => string; path: (slug: string) => string }> = [
@@ -129,16 +151,23 @@ export function createDemoDataForSeoClient(): DataForSeoClient {
     async getAutocomplete(request) {
       const query = clean(request.keyword);
       const random = seededRandom(`ac:${query}`);
-      const last = query.split(" ").at(-1) ?? "";
-      if (last.length === 1 && ALPHABET_WORDS[last]) {
-        const base = query.slice(0, -2);
-        return { cost: 0, suggestions: ALPHABET_WORDS[last]!.slice(0, random.int(1, 3)).map((word) => `${base} ${word}`) };
+      const words = query.split(" ");
+      const first = words[0] ?? "";
+      const last = words.at(-1) ?? "";
+      const pick = (items: string[]) => items.slice(0, random.int(1, Math.max(1, items.length)));
+      if (last.length === 1) {
+        const base = words.slice(0, -1).join(" ");
+        return { cost: 0, suggestions: pick(ALPHABET_WORDS[last] ?? []).map((word) => `${base} ${word}`) };
       }
-      if (/^(how|what|why|when|where|which|who|can|is|are|does|should) /.test(query)) {
-        const endings = ["work", "last", "for beginners", "at home", "compared", "worth it"];
-        return { cost: 0, suggestions: endings.slice(0, random.int(1, 3)).map((ending) => `${query} ${ending}`) };
+      if (QUESTION_SUGGESTIONS[first] !== undefined || ["who", "are", "does"].includes(first)) {
+        const seed = words.slice(1).join(" ");
+        return { cost: 0, suggestions: pick((QUESTION_SUGGESTIONS[first] ?? []).map((build) => build(seed))) };
       }
-      return { cost: 0, suggestions: [`${query} for beginners`, `${query} 2026`, `${query} on a budget`].slice(0, random.int(1, 3)) };
+      if (CONNECTOR_SUGGESTIONS[last] !== undefined) {
+        const base = words.slice(0, -1).join(" ");
+        return { cost: 0, suggestions: pick(CONNECTOR_SUGGESTIONS[last]!).map((ending) => `${base} ${ending}`) };
+      }
+      return { cost: 0, suggestions: pick([`${query} for beginners`, `${query} 2026`, `${query} on a budget`]) };
     },
 
     async getKeywordOverview(request) {

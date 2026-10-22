@@ -65,7 +65,12 @@ describe("demo DataForSEO client", () => {
     const question = await client.getAutocomplete({ keyword: "how running shoes", ...market });
     expect(letter.suggestions.length).toBeGreaterThan(0);
     expect(letter.suggestions.every((text) => text.startsWith("running shoes b"))).toBe(true);
-    expect(question.suggestions.every((text) => text.startsWith("how running shoes"))).toBe(true);
+    expect(question.suggestions.length).toBeGreaterThan(0);
+    expect(question.suggestions.every((text) => text.startsWith("how ") && text.includes("running shoes"))).toBe(true);
+    const connector = await client.getAutocomplete({ keyword: "running shoes for", ...market });
+    expect(connector.suggestions.every((text) => text.startsWith("running shoes for ") && !text.includes("for for"))).toBe(true);
+    // Letters without a natural completion return nothing rather than odd phrases.
+    expect((await client.getAutocomplete({ keyword: "running shoes x", ...market })).suggestions).toEqual([]);
   });
 
   it("returns gap keywords and keyword overviews", async () => {
