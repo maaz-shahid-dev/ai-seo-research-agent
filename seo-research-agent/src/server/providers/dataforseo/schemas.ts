@@ -99,3 +99,68 @@ function envelopeSchema<Task extends z.ZodType>(task: Task) {
 
 export const keywordIdeasResponseSchema = envelopeSchema(taskSchema(z.unknown()));
 export const organicSerpResponseSchema = envelopeSchema(taskSchema(z.unknown()));
+
+const domainRankItemSchema = z
+  .object({ target: z.string(), rank: nullableNonnegativeNumber })
+  .passthrough();
+
+export const domainRanksResultSchema = z
+  .object({ items: z.array(domainRankItemSchema).nullable().optional() })
+  .passthrough();
+
+const whoisItemSchema = z
+  .object({
+    domain: z.string(),
+    created_datetime: nullableString,
+    metrics: z
+      .object({
+        organic: z.object({ etv: nullableNonnegativeNumber }).passthrough().nullable().optional(),
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
+    backlinks_info: z
+      .object({
+        backlinks: nullableNonnegativeInteger,
+        referring_domains: nullableNonnegativeInteger,
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
+  })
+  .passthrough();
+
+export const whoisOverviewResultSchema = z
+  .object({ items: z.array(whoisItemSchema).nullable().optional() })
+  .passthrough();
+
+const intersectionItemSchema = z
+  .object({
+    keyword_data: z
+      .object({
+        keyword: z.string().trim().min(1),
+        keyword_info: z
+          .object({ search_volume: nullableNonnegativeInteger, cpc: nullableNonnegativeNumber })
+          .passthrough()
+          .nullable()
+          .optional(),
+        keyword_properties: z
+          .object({ keyword_difficulty: z.number().int().min(0).max(100).nullable().optional() })
+          .passthrough()
+          .nullable()
+          .optional(),
+      })
+      .passthrough(),
+    first_domain_serp_element: z
+      .object({ rank_group: nullableNonnegativeInteger })
+      .passthrough()
+      .nullable()
+      .optional(),
+  })
+  .passthrough();
+
+export const domainIntersectionResultSchema = z
+  .object({ items: z.array(intersectionItemSchema).nullable().optional() })
+  .passthrough();
+
+export const genericResponseSchema = envelopeSchema(taskSchema(z.unknown()));

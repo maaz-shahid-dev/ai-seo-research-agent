@@ -92,6 +92,66 @@ interface OrganicSerpResultPayload {
 
 export type OrganicSerpResult = OrganicSerpResultPayload & DataForSeoResultOutcome;
 
+const providerDomainSchema = z
+  .string()
+  .transform((value, context) => {
+    const domain = normalizeDomain(value);
+    if (!domain || !domain.includes(".")) {
+      context.addIssue({ code: "custom", message: "Invalid domain" });
+      return z.NEVER;
+    }
+    return domain;
+  });
+
+/** Up to 100 registrable domains per batch (the provider allows 1000). */
+export const domainMetricsRequestSchema = z
+  .object({ domains: z.array(providerDomainSchema).min(1).max(100) })
+  .strict()
+  .transform(({ domains }) => ({ domains: [...new Set(domains)] }));
+
+export type DomainMetricsRequest = z.input<typeof domainMetricsRequestSchema>;
+
+export interface NormalizedDomainMetrics {
+  domain: string;
+  /** DataForSEO rank on its 0–100 scale. */
+  authority: number | null;
+  backlinks: number | null;
+  referringDomains: number | null;
+  monthlyTraffic: number | null;
+  registeredAt: string | null;
+}
+
+export interface DomainMetricsResult {
+  cost: number;
+  items: NormalizedDomainMetrics[];
+}
+
+export const domainIntersectionRequestSchema = z
+  .object({
+    competitorDomain: providerDomainSchema,
+    targetDomain: providerDomainSchema,
+    locationCode: z.number().int().positive(),
+    languageCode: z.string().trim().min(2).max(35),
+    limit: z.number().int().min(1).max(200).default(100),
+  })
+  .strict();
+
+export type DomainIntersectionRequest = z.input<typeof domainIntersectionRequestSchema>;
+
+/** A keyword the competitor ranks for and the target does not. */
+export interface NormalizedGapKeyword {
+  keyword: string;
+  searchVolume: number | null;
+  cpc: number | null;
+  keywordDifficulty: number | null;
+  competitorRank: number;
+}
+
+export interface DomainIntersectionResult {
+  cost: number | null;
+  items: NormalizedGapKeyword[];
+}
+
 export interface ProviderRequestOptions {
   signal?: AbortSignal;
 }

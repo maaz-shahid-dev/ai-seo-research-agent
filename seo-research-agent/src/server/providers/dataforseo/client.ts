@@ -13,12 +13,19 @@ import {
   invalidTimeoutForProvider,
 } from "@/server/providers/request-context";
 import {
+  domainIntersectionRequestSchema,
+  domainMetricsRequestSchema,
   keywordIdeasRequestSchema,
   normalizeDomain,
   normalizeLinkHttpUrl,
   organicSerpRequestSchema,
   searchIntentSchema,
   type DataForSeoResultOutcome,
+  type DomainIntersectionRequest,
+  type DomainIntersectionResult,
+  type DomainMetricsRequest,
+  type DomainMetricsResult,
+  type NormalizedDomainMetrics,
   type KeywordIdeasRequest,
   type KeywordIdeasResult,
   type OrganicSerpRequest,
@@ -26,15 +33,22 @@ import {
   type ProviderRequestOptions,
 } from "@/server/providers/types";
 import {
+  domainIntersectionResultSchema,
+  domainRanksResultSchema,
+  genericResponseSchema,
   keywordIdeasResultSchema,
   keywordIdeasResponseSchema,
   organicSerpResultSchema,
   organicSerpResponseSchema,
+  whoisOverviewResultSchema,
 } from "./schemas";
 
 const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 const KEYWORD_IDEAS_PATH = "/v3/dataforseo_labs/google/keyword_ideas/live";
 const ORGANIC_SERP_PATH = "/v3/serp/google/organic/live/advanced";
+const DOMAIN_RANKS_PATH = "/v3/backlinks/bulk_ranks/live";
+const WHOIS_OVERVIEW_PATH = "/v3/domain_analytics/whois/overview/live";
+const DOMAIN_INTERSECTION_PATH = "/v3/dataforseo_labs/google/domain_intersection/live";
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const SUCCESS_STATUS = 20_000;
 const NO_RESULTS_STATUS = 40_102;
@@ -77,6 +91,16 @@ export interface DataForSeoClient {
     request: OrganicSerpRequest,
     options?: ProviderRequestOptions,
   ): Promise<OrganicSerpResult>;
+  /** Authority, backlinks, referring domains, traffic and registration date per domain. */
+  getDomainMetrics(
+    request: DomainMetricsRequest,
+    options?: ProviderRequestOptions,
+  ): Promise<DomainMetricsResult>;
+  /** Keywords the competitor ranks for where the target domain does not. */
+  getDomainIntersection(
+    request: DomainIntersectionRequest,
+    options?: ProviderRequestOptions,
+  ): Promise<DomainIntersectionResult>;
 }
 
 export function createDataForSeoClient(options: DataForSeoClientOptions = {}): DataForSeoClient {
@@ -312,6 +336,88 @@ export function createDataForSeoClient(options: DataForSeoClientOptions = {}): D
             };
           }),
         ...outcomeMetadata(outcome),
+      };
+    },
+
+    async getDomainMetrics(request, requestOptions = {}) {
+      const { domains } = parseInput(domainMetricsRequestSchema, request);
+      // One rank call and one WHOIS call cover every domain in the batch.
+      const [ranksResponse, whoisResponse] = await Promise.all([
+        post(DOMAIN_RANKS_PATH, { targets: domains, rank_scale: "one_hundred" }, genericResponseSchema, requestOptions),
+        post(
+          WHOIS_OVERVIEW_PATH,
+          { filters: [["domain", "in", domains]], limit: domains.length },
+          genericResponseSchema,
+          requestOptions,
+        ),
+      ]);
+      const ranks = taskOutcome(ranksResponse);
+      const whois = taskOutcome(whoisResponse);
+      const rankItems = ranks.outcome === "empty" ? []
+        : parseResult(domainRanksResultSchema, ranks.task.result?.[0], "DataForSEO did not include valid ranks.").items ?? [];
+      const whoisItems = whois.outcome === "empty" ? []
+        : parseResult(whoisOverviewResultSchema, whois.task.result?.[0], "DataForSEO did not include valid WHOIS data.").items ?? [];
+
+      const byDomain = new Map<string, NormalizedDomainMetrics>(
+        domains.map((domain) => [domain, {
+          domain, authority: null, backlinks: null, referringDomains: null, monthlyTraffic: null, registeredAt: null,
+        }]),
+      );
+      for (const item of rankItems) {
+        const entry = byDomain.get(normalizeDomain(item.target) ?? "");
+        if (entry && item.rank != null) entry.authority = Math.min(100, Math.round(item.rank));
+      }
+      for (const item of whoisItems) {
+        const entry = byDomain.get(normalizeDomain(item.domain) ?? "");
+        if (!entry) continue;
+        entry.registeredAt = normalizeProviderTimestamp(item.created_datetime);
+        entry.backlinks = item.backlinks_info?.backlinks ?? null;
+        entry.referringDomains = item.backlinks_info?.referring_domains ?? null;
+        const traffic = item.metrics?.organic?.etv;
+        entry.monthlyTraffic = traffic == null ? null : Math.round(traffic);
+      }
+
+      return {
+        cost: (ranksResponse.tasks?.[0]?.cost ?? 0) + (whoisResponse.tasks?.[0]?.cost ?? 0),
+        items: [...byDomain.values()],
+      };
+    },
+
+    async getDomainIntersection(request, requestOptions = {}) {
+      const input = parseInput(domainIntersectionRequestSchema, request);
+      const response = await post(
+        DOMAIN_INTERSECTION_PATH,
+        {
+          target1: input.competitorDomain,
+          target2: input.targetDomain,
+          // false = keywords target1 ranks for and target2 does not.
+          intersections: false,
+          location_code: input.locationCode,
+          language_code: input.languageCode,
+          item_types: ["organic"],
+          limit: input.limit,
+          order_by: ["keyword_data.keyword_info.search_volume,desc"],
+        },
+        genericResponseSchema,
+        requestOptions,
+      );
+      const { task, outcome } = taskOutcome(response);
+      if (outcome === "empty") return { cost: task.cost ?? null, items: [] };
+
+      const result = parseResult(domainIntersectionResultSchema, task.result?.[0], "DataForSEO did not include valid gap keywords.");
+      return {
+        cost: task.cost ?? null,
+        items: (result.items ?? []).flatMap((item) => {
+          const rank = item.first_domain_serp_element?.rank_group;
+          if (rank == null || rank < 1) return [];
+          return [{
+            keyword: item.keyword_data.keyword,
+            searchVolume: item.keyword_data.keyword_info?.search_volume ?? null,
+            cpc: item.keyword_data.keyword_info?.cpc ?? null,
+            keywordDifficulty: item.keyword_data.keyword_properties?.keyword_difficulty ?? null,
+            competitorRank: rank,
+          }];
+        }),
       };
     },
   };
