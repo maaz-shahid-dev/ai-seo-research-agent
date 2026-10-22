@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { competitionLevel, trendVolumes } from "@/features/research/niche";
 import type { Opportunity } from "@/features/research/opportunity";
@@ -11,15 +11,15 @@ import { Button } from "@/components/ui/Button";
 import { describeTrend, Sparkline } from "@/components/ui/Sparkline";
 import { toCsv } from "@/lib/csv";
 import { downloadFile } from "@/lib/download";
+import { readParam, writeParams } from "@/lib/url-state";
 import { capitalize, formatCurrencyMicros, formatNumber } from "@/lib/format";
 
-import { EMPTY_FILTERS, ExportActions, FavoriteButton, FilterBar, OpportunityCell, type KeywordFilters } from "./KeywordTableParts";
+import { EMPTY_FILTERS, ExportActions, filtersFromUrl, filtersToUrl, sortFromUrl, sortToUrl, FavoriteButton, FilterBar, OpportunityCell, type KeywordFilters, type Sort } from "./KeywordTableParts";
 
 /** The filters only earn their space once the list is long enough to scan. */
 const FILTER_THRESHOLD = 10;
 
-type SortKey = "searchVolume" | "difficulty" | "cpcMicros" | "opportunity";
-type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
+type SortKey = NonNullable<Sort>["key"];
 
 type KeywordTableProps = {
   keywords: KeywordDto[];
@@ -33,14 +33,19 @@ type KeywordTableProps = {
   favorites?: { done: ReadonlySet<string>; toggle: (id: string) => void };
   /** File name stem for Copy / CSV / JSON of the shown rows; no export without it. */
   exportName?: string;
+  /** Keep filters and sort in the URL so the view survives a refresh and can be shared. */
+  syncUrl?: boolean;
 };
 
 export function KeywordTable({
-  keywords, hasMore, loadingMore, onLoadMore, onSelect, emptyMessage, opportunities, favorites, exportName,
+  keywords, hasMore, loadingMore, onLoadMore, onSelect, emptyMessage, opportunities, favorites, exportName, syncUrl = false,
 }: KeywordTableProps) {
-  const [filters, setFilters] = useState<KeywordFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<KeywordFilters>(() => (syncUrl ? filtersFromUrl(readParam) : EMPTY_FILTERS));
   // Until the user picks a column, rank by opportunity when scores are available.
-  const [chosenSort, setSort] = useState<Sort | undefined>(undefined);
+  const [chosenSort, setSort] = useState<Sort | undefined>(() => (syncUrl ? sortFromUrl(readParam("sort")) : undefined));
+  useEffect(() => {
+    if (syncUrl) writeParams({ ...filtersToUrl(filters), sort: sortToUrl(chosenSort) });
+  }, [syncUrl, filters, chosenSort]);
   const hasOpportunities = Boolean(opportunities);
   const sort = useMemo<Sort>(
     () => (chosenSort !== undefined ? chosenSort : hasOpportunities ? { key: "opportunity", direction: "desc" } : null),

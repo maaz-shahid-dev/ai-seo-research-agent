@@ -10,6 +10,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    setupFiles: ["./tests/setup/reset-url.ts"],
     // PGlite and jsdom are intentionally resource-heavy; bounding workers
     // prevents CI contention from turning otherwise deterministic tests flaky.
     maxWorkers: 4,

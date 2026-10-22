@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { slugify } from "@/features/research/blueprint";
 import { isQuestionKeyword } from "@/features/research/niche";
@@ -10,6 +10,7 @@ import type { AiAnalysisDto, KeywordDto, ProjectDto } from "@/features/research/
 import { Button } from "@/components/ui/Button";
 import { tabPanelProps, Tabs } from "@/components/ui/Tabs";
 import { useStoredChecklist } from "@/hooks/useStoredChecklist";
+import { pick, readParam, writeParams } from "@/lib/url-state";
 
 import { ContentGapView } from "./ContentGapView";
 import { ContentPlanView } from "./ContentPlanView";
@@ -25,7 +26,8 @@ import { OverviewStats } from "./OverviewStats";
 import { SerpPanel } from "./SerpPanel";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
-type ResultTab = "overview" | "keywords" | "coverage" | "questions" | "plan" | "launch" | "kgr" | "iskills" | "content-gap";
+const RESULT_TABS = ["overview", "keywords", "coverage", "questions", "plan", "launch", "kgr", "iskills", "content-gap"] as const;
+type ResultTab = (typeof RESULT_TABS)[number];
 const TABS_LABEL = "Result views";
 const BEST_OPPORTUNITY_COUNT = 5;
 
@@ -42,7 +44,9 @@ type ResearchResultsProps = {
 
 /** Everything about one finished search, one simple tab at a time, plus the SERP side panel. */
 export function ResearchResults({ runId, analysis, project, onProjectUpdate, keywords, hasMore, loadingMore, onLoadMore }: ResearchResultsProps) {
-  const [tab, setTab] = useState<ResultTab>("overview");
+  // Results render only in the browser (after loading), so reading the URL here is safe.
+  const [tab, setTab] = useState<ResultTab>(() => pick(readParam("tab"), RESULT_TABS, "overview"));
+  useEffect(() => writeParams({ tab: tab === "overview" ? null : tab }), [tab]);
   const [selected, setSelected] = useState<KeywordDto | null>(null);
   const questions = useMemo(() => keywords.filter((item) => isQuestionKeyword(item.keyword)), [keywords]);
   // The searched topic itself, or its biggest keyword when the provider didn't return it.
@@ -66,6 +70,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
       opportunities={opportunities}
       favorites={favorites}
       exportName={withExport ? exportName : undefined}
+      syncUrl={withExport && rows === keywords}
       hasMore={hasMore}
       loadingMore={loadingMore}
       onLoadMore={onLoadMore}

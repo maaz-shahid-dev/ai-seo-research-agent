@@ -8,7 +8,8 @@ import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 import { ThemeToggle } from "./ThemeToggle";
 
-export type AppView = "research" | "ideas" | "history" | "projects";
+export const APP_VIEWS = ["research", "ideas", "history", "projects"] as const;
+export type AppView = (typeof APP_VIEWS)[number];
 
 const NAV_ITEMS: ReadonlyArray<{ view: AppView; label: string; icon: typeof Search }> = [
   { view: "research", label: "Research", icon: Search },

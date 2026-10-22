@@ -375,4 +375,26 @@ describe("research dashboard", () => {
       languageCode: "en",
     });
   });
+
+  it("opens a shared link to an older search and keeps the URL in sync", async () => {
+    const otherRun = { ...completedRun, id: "30000000-0000-4000-8000-000000000009", query: "best seo audit tool" };
+    const fetchMock = mockApi({
+      [HISTORY]: json({ runs: [otherRun] }),
+      [DETAIL]: json(completedDetail),
+      [`GET /api/research/${otherRun.id}`]: json({ ...completedDetail, run: otherRun }),
+    });
+    render(<DashboardClient user={{ name: "Person" }} initialProjects={[project]} initialView="research" initialRunId={completedRun.id} />);
+
+    expect(await screen.findByRole("heading", { name: "Technical SEO" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Best SEO Audit Tool" })).toBeNull();
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === `/api/research/${completedRun.id}`)).toBe(true);
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("run")).toBe(completedRun.id));
+  });
+
+  it("starts on the screen named in the link", async () => {
+    mockApi({ [HISTORY]: json({ runs: [completedRun] }), [DETAIL]: json(completedDetail) });
+    render(<DashboardClient user={{ name: "Person" }} initialProjects={[project]} initialView="history" />);
+    expect(await screen.findByRole("heading", { name: "History" })).toBeTruthy();
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get("view")).toBe("history"));
+  });
 });

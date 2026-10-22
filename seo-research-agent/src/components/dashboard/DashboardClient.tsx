@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { replaceProject } from "@/features/projects/client";
 import { MARKET_LANGUAGE } from "@/features/research/markets";
@@ -10,6 +10,7 @@ import { AppShell, type AppView } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { apiRequest, errorMessage } from "@/lib/api-client";
+import { writeParams } from "@/lib/url-state";
 
 import { DailyNichesView } from "./DailyNichesView";
 import { HistoryView } from "./HistoryView";
@@ -24,10 +25,15 @@ type DashboardClientProps = {
   initialProjects: ProjectDto[];
   /** True when the server runs on built-in demo data instead of live providers. */
   demo?: boolean;
+  /** Screen and search from a shared or refreshed URL (validated on the server). */
+  initialView?: AppView;
+  initialRunId?: string | null;
 };
 
-export function DashboardClient({ user, initialProjects, demo = false }: DashboardClientProps) {
-  const [view, setView] = useState<AppView>("research");
+export function DashboardClient({ user, initialProjects, demo = false, initialView = "research", initialRunId = null }: DashboardClientProps) {
+  const [view, setView] = useState<AppView>(initialView);
+  // A search named in the URL; cleared once it is shown or turns out to be unavailable.
+  const [linkedRunId, setLinkedRunId] = useState<string | null>(initialRunId);
   const [projects, setProjects] = useState(initialProjects);
   // Pin the starting project so creating a new one doesn't silently switch searches to it.
   const [chosenProjectId, setChosenProjectId] = useState<string | null>(
@@ -48,8 +54,31 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
   const recent = useRecentRuns(project?.id ?? null);
   const country = chosenCountry ?? project?.countryCode ?? "US";
   // Show the user's pick, otherwise the latest search, so results survive a reload.
+  const linkedRun = linkedRunId ? recent.runs.find((run) => run.id === linkedRunId) ?? null : null;
+  // Wait for a linked search older than the recent list instead of flashing the latest one.
+  const waitingForLink = linkedRunId !== null && linkedRun === null && !selectedRun;
   const displayedRun =
-    (selectedRun && recent.runs.find((run) => run.id === selectedRun.id)) ?? selectedRun ?? recent.runs[0] ?? null;
+    (selectedRun && recent.runs.find((run) => run.id === selectedRun.id)) ?? selectedRun ?? linkedRun
+      ?? (waitingForLink ? null : recent.runs[0] ?? null);
+
+  // A linked search that isn't among the recent ones is loaded on its own.
+  useEffect(() => {
+    if (!linkedRunId || recent.loading || linkedRun || selectedRun) return;
+    const controller = new AbortController();
+    apiRequest<{ run: ResearchRunDto }>(`/api/research/${encodeURIComponent(linkedRunId)}`, { signal: controller.signal })
+      .then(({ run }) => {
+        setSelectedRun(run);
+        if (run.projectId !== project?.id && activeProjects.some((item) => item.id === run.projectId)) setChosenProjectId(run.projectId);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLinkedRunId(null);
+      });
+    return () => controller.abort();
+  }, [linkedRunId, recent.loading, linkedRun, selectedRun, project?.id, activeProjects]);
+
+  useEffect(() => {
+    writeParams({ view: view === "research" ? null : view, run: displayedRun?.id ?? null });
+  }, [view, displayedRun?.id]);
 
   function updateProjectInList(updated: ProjectDto) {
     setProjects((current) => replaceProject(current, updated));
@@ -58,6 +87,7 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
   function openProject(projectId: string) {
     setChosenProjectId(projectId);
     setSelectedRun(null);
+    setLinkedRunId(null);
     setSubmitError(null);
     setView("research");
   }

@@ -7,6 +7,7 @@ import { TIER_LABELS, type Opportunity, type OpportunityTier } from "@/features/
 import type { KeywordDto } from "@/features/research/types";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { pick } from "@/lib/url-state";
 
 export type KeywordFilters = {
   text: string;
@@ -17,6 +18,39 @@ export type KeywordFilters = {
 };
 
 export const EMPTY_FILTERS: KeywordFilters = { text: "", maxDifficulty: "", intent: "", tier: "", favoritesOnly: false };
+
+export type Sort = { key: "searchVolume" | "difficulty" | "cpcMicros" | "opportunity"; direction: "asc" | "desc" } | null;
+
+const SORT_KEYS = ["searchVolume", "difficulty", "cpcMicros", "opportunity"] as const;
+const DIFFICULTY_LIMITS = ["", "20", "30", "50"] as const;
+const MAX_TEXT = 100;
+
+export function filtersFromUrl(read: (name: string) => string | null): KeywordFilters {
+  return {
+    text: (read("q") ?? "").slice(0, MAX_TEXT),
+    intent: pick(read("intent"), ["", ...INTENTS], ""),
+    maxDifficulty: pick(read("kd"), DIFFICULTY_LIMITS, ""),
+    tier: pick(read("tier"), ["", ...(Object.keys(TIER_LABELS) as OpportunityTier[])], ""),
+    favoritesOnly: read("fav") === "1",
+  };
+}
+
+export function filtersToUrl(filters: KeywordFilters) {
+  return { q: filters.text.trim() || null, intent: filters.intent || null, kd: filters.maxDifficulty || null, tier: filters.tier || null, fav: filters.favoritesOnly ? "1" : null };
+}
+
+/** "volume-desc" style values; "none" means the user cleared sorting. Undefined keeps the default. */
+export function sortFromUrl(value: string | null): Sort | undefined {
+  if (value === "none") return null;
+  const [key, direction] = (value ?? "").split("-");
+  return (SORT_KEYS as readonly string[]).includes(key ?? "") && (direction === "asc" || direction === "desc")
+    ? { key: key as (typeof SORT_KEYS)[number], direction }
+    : undefined;
+}
+
+export function sortToUrl(sort: Sort | undefined) {
+  return sort === undefined ? null : sort === null ? "none" : `${sort.key}-${sort.direction}`;
+}
 
 const TIER_TONES: Record<OpportunityTier, BadgeTone> = { prime: "good", solid: "accent", tough: "warn", fortress: "neutral" };
 const TIER_BARS: Record<OpportunityTier, string> = {
