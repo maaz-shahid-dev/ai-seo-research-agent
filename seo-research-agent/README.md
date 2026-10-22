@@ -193,6 +193,7 @@ The readiness endpoint returns only `ready` or `unavailable`; it does not disclo
 
 ## Current scope and known release gaps
 
+- **Niche Hunter UI is ahead of the backend.** Results now have Keywords / Questions / Content gap tabs, sortable columns (volume, difficulty, CPC, niche score), a difficulty filter, trend sparklines, competition levels, and a SERP side panel (top 10 with authority, traffic, domain age and weak-spot badges). The scoring rules live in `src/features/research/niche.ts`, and the response shapes in `src/features/research/types.ts`. These endpoints still need to be built: `POST/GET /api/research/{runId}/serp/{keywordId}` and `POST/GET /api/research/{runId}/content-gap` (DataForSEO SERP, domain rank, traffic, WHOIS and domain-intersection data). Until then those views show the server's error.
 - The UI is US English only and runs keyword-ideas research. Additional markets require validated `provider_markets` records and a market selector.
 - Evidence-constrained OpenAI analysis is live in the worker and dashboard. The DataForSEO organic SERP adapter is implemented and tested but intentionally not exposed in the minimal UI yet.
 - Browser tests cover public/authentication boundaries and security headers. Authenticated live-provider smoke tests still require an isolated staging database and paid-provider credentials; run the deployment checklist before shifting production traffic.

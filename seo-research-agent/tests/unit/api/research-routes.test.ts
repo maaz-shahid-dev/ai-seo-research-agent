@@ -355,6 +355,8 @@ describe("research status API", () => {
         trend: null,
         countryCode: "US",
         languageCode: "en",
+        // No SERP has been analyzed yet, so no score (and never the row index).
+        nicheScore: null,
       },
     ]);
     expect(payload.run).not.toHaveProperty("ownerId");

@@ -23,12 +23,13 @@ function keywords(count: number): KeywordDto[] {
     trend: null,
     countryCode: "US",
     languageCode: "en",
+    nicheScore: null,
   }));
 }
 
 describe("keyword table", () => {
   it("hides the filter for short lists and shows dashes for missing data", () => {
-    render(<KeywordTable keywords={keywords(3)} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} />);
+    render(<KeywordTable keywords={keywords(3)} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} onSelect={vi.fn()} />);
 
     expect(screen.queryByLabelText("Filter keywords")).toBeNull();
     const firstRow = screen.getByText("running shoes for women").closest("tr")!;
@@ -38,20 +39,20 @@ describe("keyword table", () => {
 
   it("filters long lists and explains when nothing matches", async () => {
     const user = userEvent.setup({ delay: null });
-    render(<KeywordTable keywords={keywords(12)} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} />);
+    render(<KeywordTable keywords={keywords(12)} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} onSelect={vi.fn()} />);
 
     await user.type(screen.getByLabelText("Filter keywords"), "WOMEN");
     expect(screen.getAllByRole("row")).toHaveLength(2);
 
     await user.clear(screen.getByLabelText("Filter keywords"));
     await user.type(screen.getByLabelText("Filter keywords"), "zzz");
-    expect(screen.getByText("No keywords match this filter.")).toBeTruthy();
+    expect(screen.getByText("No keywords match these filters.")).toBeTruthy();
   });
 
   it("explains an empty result and loads more pages on request", async () => {
     const user = userEvent.setup({ delay: null });
     const onLoadMore = vi.fn();
-    render(<KeywordTable keywords={[]} hasMore loadingMore={false} onLoadMore={onLoadMore} />);
+    render(<KeywordTable keywords={[]} hasMore loadingMore={false} onLoadMore={onLoadMore} onSelect={vi.fn()} />);
 
     expect(screen.getByText("No keywords found for this topic.")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Load more" }));

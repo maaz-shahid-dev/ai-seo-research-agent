@@ -30,7 +30,7 @@ export async function GET(request: Request, context: RouteContext) {
     return noStore(
       Response.json({
         run: toResearchRunDto(run),
-        keywords: keywords.items.map(toKeywordDto),
+        keywords: keywords.items.map((keyword) => toKeywordDto(keyword)),
         nextCursor: keywords.nextCursor,
         analysis: toAiAnalysisDto(analysis),
       }),

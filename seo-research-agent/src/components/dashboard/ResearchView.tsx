@@ -3,23 +3,25 @@
 import { Download, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 
-import { isRunInProgress, type ResearchRunDto } from "@/features/research/types";
+import { isRunInProgress, type ProjectDto, type ResearchRunDto } from "@/features/research/types";
 import { Button, buttonStyles } from "@/components/ui/Button";
 import { formatRelativeTime } from "@/lib/format";
 
 import { InsightsCard } from "./InsightsCard";
-import { KeywordTable } from "./KeywordTable";
+import { ResearchResults } from "./ResearchResults";
 import { useResearchRun } from "./useResearchRun";
 
 type ResearchViewProps = {
   initialRun: ResearchRunDto;
+  project: ProjectDto;
+  onProjectUpdate: (project: ProjectDto) => void;
   /** Called whenever polling returns a newer copy of the run. */
   onRunChange: (run: ResearchRunDto) => void;
   onRetry: (query: string) => void;
 };
 
 /** Shows one search from queued through finished. Remount (via `key`) to switch runs. */
-export function ResearchView({ initialRun, onRunChange, onRetry }: ResearchViewProps) {
+export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange, onRetry }: ResearchViewProps) {
   const { run, analysis, keywords, nextCursor, error, loadingMore, loadMore } =
     useResearchRun(initialRun);
 
@@ -37,7 +39,10 @@ export function ResearchView({ initialRun, onRunChange, onRetry }: ResearchViewP
       ) : run.status === "completed" ? (
         <>
           <InsightsCard analysis={analysis} />
-          <KeywordTable
+          <ResearchResults
+            runId={run.id}
+            project={project}
+            onProjectUpdate={onProjectUpdate}
             keywords={keywords}
             hasMore={nextCursor !== null}
             loadingMore={loadingMore}

@@ -63,6 +63,7 @@ const keyword = {
   trend: null,
   countryCode: "US",
   languageCode: "en",
+  nicheScore: null,
 };
 
 const completedDetail: ResearchDetailResponse = {

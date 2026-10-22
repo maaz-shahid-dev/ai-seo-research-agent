@@ -3,6 +3,7 @@
 import { signOut } from "next-auth/react";
 import { useRef, useState } from "react";
 
+import { replaceProject } from "@/features/projects/client";
 import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
 import { Button } from "@/components/ui/Button";
 import { apiRequest, errorMessage } from "@/lib/api-client";
@@ -41,6 +42,10 @@ export function DashboardClient({ user, initialProjects }: DashboardClientProps)
   // Show the user's pick, otherwise the latest search, so results survive a reload.
   const displayedRun =
     (selectedRun && recent.runs.find((run) => run.id === selectedRun.id)) ?? selectedRun ?? recent.runs[0] ?? null;
+
+  function updateProjectInList(updated: ProjectDto) {
+    setProjects((current) => replaceProject(current, updated));
+  }
 
   function openProject(projectId: string) {
     setChosenProjectId(projectId);
@@ -139,6 +144,8 @@ export function DashboardClient({ user, initialProjects }: DashboardClientProps)
               <ResearchView
                 key={displayedRun.id}
                 initialRun={displayedRun}
+                project={project}
+                onProjectUpdate={updateProjectInList}
                 onRunChange={recent.upsert}
                 onRetry={retry}
               />

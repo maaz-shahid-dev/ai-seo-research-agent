@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { replaceProject, updateProject } from "@/features/projects/client";
 import type { ProjectDto } from "@/features/research/types";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -33,7 +34,7 @@ export function ProjectsPanel({ projects, activeProjectId, onProjectsChange, onO
   }
 
   function replace(project: ProjectDto) {
-    onProjectsChange((current) => current.map((item) => (item.id === project.id ? project : item)));
+    onProjectsChange((current) => replaceProject(current, project));
   }
 
   function create(event: FormEvent<HTMLFormElement>) {
@@ -141,12 +142,4 @@ export function ProjectsPanel({ projects, activeProjectId, onProjectsChange, onO
       </ul>
     </div>
   );
-}
-
-async function updateProject(project: ProjectDto, changes: { name?: string; archived?: boolean }) {
-  const { project: updated } = await apiRequest<{ project: ProjectDto }>(`/api/projects/${project.id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ ...changes, version: project.version }),
-  });
-  return updated;
 }

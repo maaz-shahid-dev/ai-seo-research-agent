@@ -22,7 +22,11 @@ export function toResearchRunDto(run: ResearchRun) {
   };
 }
 
-export function toKeywordDto(keyword: KeywordResult) {
+/**
+ * `nicheScores` maps keyword ids to scores; keywords without an analyzed SERP get null.
+ * A Map (not a number) also stops `.map(toKeywordDto)` from passing array indexes as scores.
+ */
+export function toKeywordDto(keyword: KeywordResult, nicheScores?: ReadonlyMap<number, number>) {
   return {
     id: keyword.id,
     keyword: keyword.keyword,
@@ -35,6 +39,7 @@ export function toKeywordDto(keyword: KeywordResult) {
     trend: keyword.trend,
     countryCode: keyword.countryCode,
     languageCode: keyword.languageCode,
+    nicheScore: nicheScores?.get(keyword.id) ?? null,
   };
 }
 
