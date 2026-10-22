@@ -18,8 +18,9 @@ export function buildAutocompleteQueries(seedInput: string): AutocompleteQuery[]
     { query: seed, pattern: "seed" },
     ...LETTERS.map((letter) => ({ query: `${seed} ${letter}`, pattern: "letter" as const })),
     ...QUESTION_PREFIXES.map((word) => ({ query: `${word} ${seed}`, pattern: "question" as const })),
-    ...MODIFIER_SUFFIXES.map((word) => ({ query: `${seed} ${word}`, pattern: "modifier" as const })),
-    ...MODIFIER_PREFIXES.map((word) => ({ query: `${word} ${seed}`, pattern: "modifier" as const })),
+    // Skip modifiers the topic already has ("best" + "best ai tools" would ask for "best best ai tools").
+    ...MODIFIER_SUFFIXES.filter((word) => !seed.endsWith(` ${word}`)).map((word) => ({ query: `${seed} ${word}`, pattern: "modifier" as const })),
+    ...MODIFIER_PREFIXES.filter((word) => !seed.startsWith(`${word} `)).map((word) => ({ query: `${word} ${seed}`, pattern: "modifier" as const })),
   ];
 }
 

@@ -171,7 +171,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
       aria-pressed={active}
       onClick={onClick}
       className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-        active ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+        active ? "border-indigo-600 bg-indigo-600 text-on-accent" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
       }`}
     >
       {children}

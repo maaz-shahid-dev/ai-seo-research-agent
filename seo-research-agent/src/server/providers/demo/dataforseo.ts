@@ -18,37 +18,32 @@ import { hashString, seededRandom, type Random } from "./random";
 
 type Template = { text: (seed: string) => string; intent: SearchIntent; share: [number, number] };
 
+/** Topic-neutral patterns, so products, software, services and how-to topics all read naturally. */
 const TEMPLATES: Template[] = [
   { text: (s) => `best ${s}`, intent: "commercial", share: [0.2, 0.45] },
+  { text: (s) => `top ${s}`, intent: "commercial", share: [0.03, 0.1] },
+  { text: (s) => `free ${s}`, intent: "transactional", share: [0.03, 0.12] },
   { text: (s) => `${s} for beginners`, intent: "informational", share: [0.05, 0.15] },
   { text: (s) => `how to choose ${s}`, intent: "informational", share: [0.02, 0.08] },
+  { text: (s) => `how to use ${s}`, intent: "informational", share: [0.02, 0.08] },
+  { text: (s) => `is ${s} worth it`, intent: "informational", share: [0.01, 0.04] },
   { text: (s) => `${s} checklist`, intent: "informational", share: [0.03, 0.12] },
-  { text: (s) => `${s} mistakes`, intent: "informational", share: [0.02, 0.1] },
+  { text: (s) => `${s} mistakes to avoid`, intent: "informational", share: [0.02, 0.08] },
   { text: (s) => `${s} cost`, intent: "commercial", share: [0.01, 0.06] },
-  { text: (s) => `cheap ${s}`, intent: "transactional", share: [0.02, 0.07] },
-  { text: (s) => `${s} near me`, intent: "transactional", share: [0.02, 0.1] },
+  { text: (s) => `${s} pricing`, intent: "commercial", share: [0.01, 0.05] },
   { text: (s) => `${s} reviews`, intent: "commercial", share: [0.02, 0.06] },
-  { text: (s) => `${s} sale`, intent: "transactional", share: [0.02, 0.08] },
-  { text: (s) => `how to clean ${s}`, intent: "informational", share: [0.01, 0.05] },
-  { text: (s) => `how long do ${s} last`, intent: "informational", share: [0.01, 0.04] },
-  { text: (s) => `are expensive ${s} worth it`, intent: "informational", share: [0.005, 0.02] },
-  { text: (s) => `what are the best ${s}`, intent: "informational", share: [0.01, 0.04] },
-  { text: (s) => `when to replace ${s}`, intent: "informational", share: [0.005, 0.03] },
-  { text: (s) => `${s} for small spaces`, intent: "commercial", share: [0.005, 0.03] },
-  { text: (s) => `${s} essentials`, intent: "commercial", share: [0.005, 0.03] },
-  { text: (s) => `diy ${s}`, intent: "informational", share: [0.005, 0.03] },
+  { text: (s) => `${s} comparison`, intent: "commercial", share: [0.01, 0.05] },
+  { text: (s) => `${s} pros and cons`, intent: "commercial", share: [0.005, 0.03] },
+  { text: (s) => `${s} alternatives`, intent: "commercial", share: [0.01, 0.05] },
+  { text: (s) => `${s} examples`, intent: "informational", share: [0.01, 0.05] },
+  { text: (s) => `${s} explained`, intent: "informational", share: [0.005, 0.03] },
+  { text: (s) => `${s} guide`, intent: "informational", share: [0.01, 0.05] },
   { text: (s) => `${s} ideas`, intent: "informational", share: [0.01, 0.05] },
   { text: (s) => `${s} tips`, intent: "informational", share: [0.005, 0.03] },
-  { text: (s) => `${s} problems`, intent: "informational", share: [0.005, 0.02] },
-  { text: (s) => `how to fix ${s}`, intent: "informational", share: [0.005, 0.02] },
-  { text: (s) => `${s} buying guide`, intent: "commercial", share: [0.003, 0.015] },
-  { text: (s) => `${s} vs alternatives`, intent: "commercial", share: [0.003, 0.015] },
   { text: (s) => `${s} step by step`, intent: "informational", share: [0.003, 0.02] },
-  { text: (s) => `${s} brands`, intent: "commercial", share: [0.005, 0.03] },
+  { text: (s) => `${s} for small business`, intent: "commercial", share: [0.005, 0.03] },
   { text: (s) => `${s} on a budget`, intent: "commercial", share: [0.003, 0.015] },
-  { text: (s) => `${s} accessories`, intent: "commercial", share: [0.003, 0.02] },
-  { text: (s) => `is it worth buying ${s}`, intent: "informational", share: [0.002, 0.01] },
-  { text: (s) => `${s} maintenance`, intent: "informational", share: [0.002, 0.012] },
+  { text: (s) => `${s} 2026`, intent: "informational", share: [0.005, 0.03] },
 ];
 
 /** Topic-neutral words for "seed + letter" autocomplete; letters without a natural fit return nothing. */
@@ -149,25 +144,8 @@ export function createDemoDataForSeoClient(): DataForSeoClient {
     },
 
     async getAutocomplete(request) {
-      const query = clean(request.keyword);
-      const random = seededRandom(`ac:${query}`);
-      const words = query.split(" ");
-      const first = words[0] ?? "";
-      const last = words.at(-1) ?? "";
-      const pick = (items: string[]) => items.slice(0, random.int(1, Math.max(1, items.length)));
-      if (last.length === 1) {
-        const base = words.slice(0, -1).join(" ");
-        return { cost: 0, suggestions: pick(ALPHABET_WORDS[last] ?? []).map((word) => `${base} ${word}`) };
-      }
-      if (QUESTION_SUGGESTIONS[first] !== undefined || ["who", "are", "does"].includes(first)) {
-        const seed = words.slice(1).join(" ");
-        return { cost: 0, suggestions: pick((QUESTION_SUGGESTIONS[first] ?? []).map((build) => build(seed))) };
-      }
-      if (CONNECTOR_SUGGESTIONS[last] !== undefined) {
-        const base = words.slice(0, -1).join(" ");
-        return { cost: 0, suggestions: pick(CONNECTOR_SUGGESTIONS[last]!).map((ending) => `${base} ${ending}`) };
-      }
-      return { cost: 0, suggestions: pick([`${query} for beginners`, `${query} 2026`, `${query} on a budget`]) };
+      const result = autocomplete(clean(request.keyword));
+      return { ...result, suggestions: [...new Set(result.suggestions.map(collapseRepeats))] };
     },
 
     async getKeywordOverview(request) {
@@ -176,11 +154,43 @@ export function createDemoDataForSeoClient(): DataForSeoClient {
   };
 }
 
+/** Demo autocomplete: natural completions for letter, question and connector queries. */
+function autocomplete(query: string) {
+  const random = seededRandom(`ac:${query}`);
+  const words = query.split(" ");
+  const first = words[0] ?? "";
+  const last = words.at(-1) ?? "";
+  const pick = (items: string[]) => items.slice(0, random.int(1, Math.max(1, items.length)));
+  if (last.length === 1) {
+    const base = words.slice(0, -1).join(" ");
+    return { cost: 0, suggestions: pick(ALPHABET_WORDS[last] ?? []).map((word) => `${base} ${word}`) };
+  }
+  if (QUESTION_SUGGESTIONS[first] !== undefined || ["who", "are", "does"].includes(first)) {
+    const seed = words.slice(1).join(" ");
+    return { cost: 0, suggestions: pick((QUESTION_SUGGESTIONS[first] ?? []).map((build) => build(seed))) };
+  }
+  if (CONNECTOR_SUGGESTIONS[last] !== undefined) {
+    const base = words.slice(0, -1).join(" ");
+    return { cost: 0, suggestions: pick(CONNECTOR_SUGGESTIONS[last]!).map((ending) => `${base} ${ending}`) };
+  }
+  return { cost: 0, suggestions: pick([`${query} for beginners`, `${query} 2026`, `${query} on a budget`]) };
+}
+
 function buildKeywordIdeas(seed: string): NormalizedKeywordIdea[] {
   const base = seedVolume(seed);
   const random = seededRandom(`ideas:${seed}`);
   const seedIdea = keywordMetrics(seed, random.chance(0.6) ? "commercial" : "informational", [1, 1], base);
-  return [seedIdea, ...TEMPLATES.map((template) => keywordMetrics(template.text(seed), template.intent, template.share, base))];
+  const phrases = [...new Set(TEMPLATES.map((template) => collapseRepeats(template.text(seed))))].filter((phrase) => phrase !== seed);
+  return [seedIdea, ...phrases.map((phrase) => {
+    const template = TEMPLATES.find((item) => collapseRepeats(item.text(seed)) === phrase)!;
+    return keywordMetrics(phrase, template.intent, template.share, base);
+  })];
+}
+
+/** "best best ai tools" → "best ai tools". */
+function collapseRepeats(phrase: string) {
+  const words = phrase.split(" ");
+  return words.filter((word, index) => word !== words[index - 1]).join(" ");
 }
 
 /** Seed volume between ~800 and ~300k, stable per topic; longer topics are smaller. */

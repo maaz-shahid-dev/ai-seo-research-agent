@@ -34,9 +34,11 @@ describe("demo DataForSEO client", () => {
 
     expect(first.items).toEqual(second.items);
     expect(first.items[0]!.keyword).toBe("running shoes");
-    expect(first.items.length).toBeGreaterThan(25);
+    expect(first.items.length).toBeGreaterThanOrEqual(20);
     for (const item of first.items) {
       expect(item.keyword).toContain("running shoes");
+      const words = item.keyword.split(" ");
+      expect(words.some((word, index) => word === words[index - 1])).toBe(false);
       expect(item.searchVolume).toBeGreaterThan(0);
       expect(item.keywordDifficulty).toBeGreaterThanOrEqual(0);
       expect(item.keywordDifficulty).toBeLessThanOrEqual(100);
@@ -69,6 +71,8 @@ describe("demo DataForSEO client", () => {
     expect(question.suggestions.every((text) => text.startsWith("how ") && text.includes("running shoes"))).toBe(true);
     const connector = await client.getAutocomplete({ keyword: "running shoes for", ...market });
     expect(connector.suggestions.every((text) => text.startsWith("running shoes for ") && !text.includes("for for"))).toBe(true);
+    const doubled = await client.getAutocomplete({ keyword: "what best ai tools", ...market });
+    expect(doubled.suggestions.some((text) => /best best/.test(text))).toBe(false);
     // Letters without a natural completion return nothing rather than odd phrases.
     expect((await client.getAutocomplete({ keyword: "running shoes x", ...market })).suggestions).toEqual([]);
   });

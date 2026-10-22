@@ -42,6 +42,20 @@ const PACKS: Record<PackGroupId, { label: string; description: string; pattern: 
   ecommerce: { label: "E-commerce", description: "buying, prices and stores", pattern: /\b(buy|price|pricing|cheap|shop|sale|order|delivery|cost|store|near me)\b/ },
 };
 
+/**
+ * The words a keyword adds to the topic. Packs match only these, so a topic
+ * like "best ai tools" doesn't put every keyword in the Tools and Affiliate packs.
+ */
+export function addedWords(seedInput: string, keywordInput: string) {
+  const remaining = normalizePhrase(seedInput).split(" ");
+  return normalizePhrase(keywordInput).split(" ").filter((word) => {
+    const index = remaining.indexOf(word);
+    if (index === -1) return true;
+    remaining.splice(index, 1);
+    return false;
+  }).join(" ");
+}
+
 /** Which pattern section a keyword belongs to, or null for the seed itself and unrelated phrasings. */
 export function patternOf(seedInput: string, keywordInput: string): PatternGroupId | null {
   const seed = normalizePhrase(seedInput);
@@ -62,7 +76,8 @@ export function buildCoverageGroups<T extends CoverageKeywordInput>(seed: string
   for (const keyword of keywords) {
     const pattern = patternOf(seed, keyword.keyword);
     if (pattern) byPattern.set(pattern, [...(byPattern.get(pattern) ?? []), keyword]);
-    const text = normalizePhrase(keyword.keyword);
+    const text = addedWords(seed, keyword.keyword);
+    if (!text) continue;
     for (const [id, pack] of Object.entries(PACKS) as [PackGroupId, (typeof PACKS)[PackGroupId]][]) {
       if (pack.pattern.test(text)) byPack.set(id, [...(byPack.get(id) ?? []), keyword]);
     }

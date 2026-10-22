@@ -8,10 +8,10 @@ const base =
   "disabled:cursor-not-allowed disabled:opacity-60";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-indigo-600 text-white hover:bg-indigo-700",
+  primary: "bg-indigo-600 text-on-accent hover:bg-indigo-700 dark:hover:bg-indigo-500",
   secondary: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
   ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-  danger: "bg-rose-600 text-white hover:bg-rose-700",
+  danger: "bg-rose-600 text-on-accent hover:bg-rose-700 dark:hover:bg-rose-500",
 };
 
 const sizes: Record<Size, string> = {

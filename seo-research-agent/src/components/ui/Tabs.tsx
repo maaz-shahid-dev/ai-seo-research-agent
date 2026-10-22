@@ -46,7 +46,7 @@ export function Tabs<T extends string>({ label, tabs, selected, onSelect }: Tabs
             tabIndex={active ? 0 : -1}
             onClick={() => onSelect(tab.id)}
             className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition ${
-              active ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              active ? "bg-indigo-600 text-on-accent shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
             {tab.label}

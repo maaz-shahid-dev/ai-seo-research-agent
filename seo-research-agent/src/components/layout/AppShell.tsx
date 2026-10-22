@@ -6,6 +6,8 @@ import { useState, type ReactNode } from "react";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
+import { ThemeToggle } from "./ThemeToggle";
+
 export type AppView = "research" | "ideas" | "history" | "projects";
 
 const NAV_ITEMS: ReadonlyArray<{ view: AppView; label: string; icon: typeof Search }> = [
@@ -73,7 +75,7 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
 
       {drawerOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
           <div
             ref={drawerRef}
             role="dialog"
@@ -171,6 +173,7 @@ function SidebarContent({ view, onNavigate, user, demo, onSignOut, collapsed, on
           {initials(user.name)}
         </span>
         {collapsed ? null : <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">{user.name}</span>}
+        <ThemeToggle />
         <button type="button" onClick={onSignOut} title="Sign out" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label="Sign out">
           <LogOut className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -181,7 +184,7 @@ function SidebarContent({ view, onNavigate, user, demo, onSignOut, collapsed, on
 
 function BrandMark() {
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-sm">
+    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-500 text-on-accent shadow-sm">
       <Sparkles className="h-4 w-4" aria-hidden="true" />
     </span>
   );

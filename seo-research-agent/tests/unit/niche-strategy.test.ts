@@ -142,3 +142,12 @@ describe("iSkills checklist", () => {
     expect(lowestAuthoritySites([{ authority: null }, { authority: 40 }, { authority: 5 }], 2)).toEqual([{ authority: 5 }, { authority: 40 }]);
   });
 });
+
+describe("autocomplete queries for topics that already have a modifier", () => {
+  it("never asks for doubled modifiers", () => {
+    const queries = buildAutocompleteQueries("best ai tools").map((item) => item.query);
+    expect(queries).not.toContain("best best ai tools");
+    expect(queries).toContain("cheap best ai tools");
+    expect(buildAutocompleteQueries("garden ideas").map((item) => item.query)).not.toContain("garden ideas ideas");
+  });
+});

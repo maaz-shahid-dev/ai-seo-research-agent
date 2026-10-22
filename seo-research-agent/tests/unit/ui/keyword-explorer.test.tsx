@@ -80,7 +80,7 @@ describe("coverage view", () => {
     const onSelect = vi.fn();
     render(<CoverageView seed="ai tools" keywords={keywords} onSelect={onSelect} exportName="ai-tools-keywords" />);
 
-    for (const label of ["Questions", "Modifiers", "After the topic", "Tools", "Affiliate"]) {
+    for (const label of ["Questions", "Modifiers", "After the topic", "Info", "Affiliate"]) {
       expect(screen.getByText(label, { selector: "summary span" })).toBeTruthy();
     }
     const questions = screen.getByText("Questions", { selector: "summary span" }).closest("details")!;

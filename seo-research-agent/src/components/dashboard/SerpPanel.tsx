@@ -29,7 +29,7 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} aria-hidden="true" />
       <div
         ref={dialogRef}
         role="dialog"

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCoverageGroups, patternOf } from "@/features/research/coverage-groups";
+import { addedWords, buildCoverageGroups, patternOf } from "@/features/research/coverage-groups";
 import { csvCell, toCsv } from "@/lib/csv";
 
 describe("coverage patterns", () => {
@@ -45,13 +45,31 @@ describe("coverage groups", () => {
     expect(patterns.flatMap((item) => item.keywords).map((item) => item.id).sort()).toEqual([2, 3, 4, 5, 6]);
   });
 
-  it("builds overlapping vertical packs and hides empty ones", () => {
-    expect(group(packs, "tools").keywords).toHaveLength(6);
+  it("builds overlapping vertical packs from added words only, and hides empty ones", () => {
+    // The topic itself contains "tools", so the Tools pack stays empty.
+    expect(packs.some((item) => item.id === "tools")).toBe(false);
     expect(group(packs, "apk").keywords.map((item) => item.id)).toEqual([5]);
     expect(group(packs, "saas").keywords.map((item) => item.id)).toEqual([6]);
     expect(group(packs, "affiliate").keywords.map((item) => item.id)).toEqual([2]);
     expect(packs.some((item) => item.id === "ecommerce")).toBe(true);
     expect(buildCoverageGroups("ai tools", [])).toEqual({ patterns: [], packs: [] });
+  });
+});
+
+describe("added words", () => {
+  it("removes the topic words once each", () => {
+    expect(addedWords("best ai tools", "best ai tools review")).toBe("review");
+    expect(addedWords("best ai tools", "what are the best ai tools")).toBe("what are the");
+    expect(addedWords("best ai tools", "best ai tools")).toBe("");
+    expect(addedWords("tools", "tools for tools")).toBe("for tools");
+  });
+
+  it("keeps packs meaningful when the topic has pack words", () => {
+    const { packs: topicPacks } = buildCoverageGroups("best ai tools", [
+      { id: 1, keyword: "best ai tools review", searchVolume: 10, difficulty: 10 },
+      { id: 2, keyword: "best ai tools checklist", searchVolume: 10, difficulty: 10 },
+    ]);
+    expect(topicPacks.map((item) => [item.id, item.keywords.map((keyword) => keyword.id)])).toEqual([["info", [2]], ["affiliate", [1]]]);
   });
 });
 
