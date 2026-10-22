@@ -70,9 +70,16 @@ export function listMissingResearchKeys(source: Record<string, string | undefine
   const usesLocalInngest = source.NODE_ENV !== "production" && Boolean(source.INNGEST_DEV?.trim());
   return listMissingEnvironmentKeys(source, [
     ...(usesLocalInngest ? [] : ["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"]),
-    "DATAFORSEO_LOGIN",
-    "DATAFORSEO_PASSWORD",
+    ...(isDemoMode(source) ? [] : ["DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD"]),
   ]);
+}
+
+/**
+ * Demo mode replaces DataForSEO and OpenAI with built-in generators so the
+ * whole product can be explored without paid keys. The UI labels it clearly.
+ */
+export function isDemoMode(source: Record<string, string | undefined>) {
+  return source.DEMO_DATA?.trim().toLowerCase() === "true";
 }
 
 export const productionEnvironmentKeys = [

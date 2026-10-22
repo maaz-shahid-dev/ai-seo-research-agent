@@ -2,7 +2,7 @@ import "server-only";
 
 import { meaningfulWords, normalizePhrase } from "@/features/research/autocomplete";
 import { restrictedNiche } from "@/features/research/restricted";
-import { listMissingEnvironmentKeys } from "@/server/config/environment-schema";
+import { isOpenAiAvailable } from "@/server/config/environment";
 import { getDatabase } from "@/server/db/client";
 import { insertNicheIdeas, listLatestNicheIdeas, listRecentNicheSeeds } from "@/server/db/repositories";
 import { logger } from "@/server/logging/logger";
@@ -23,27 +23,30 @@ export const generateDailyNiches = inngest.createFunction(
     singleton: { mode: "skip" },
     retries: 3,
   },
-  async ({ step }) => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (listMissingEnvironmentKeys(process.env, ["OPENAI_API_KEY", "OPENAI_MODEL"]).length > 0) {
-      logger.warn("Daily niches skipped: OpenAI is not configured");
-      return { status: "skipped", reason: "openai-not-configured" };
-    }
-
-    const existing = await step.run("check-today", async () => (await listLatestNicheIdeas(getDatabase())).date);
-    if (existing === today) return { status: "skipped", reason: "already-generated" };
-
-    const avoid = await step.run("recent-seeds", () =>
-      listRecentNicheSeeds(getDatabase(), daysAgo(today, NO_REPEAT_DAYS)));
-
-    const ideas = await step.run("generate-ideas", () =>
-      withProviderErrors(() => createOpenAiAnalysisClient().generateNicheIdeas({ date: today, count: IDEAS_PER_DAY, avoid })));
-
-    const accepted = acceptableNicheIdeas(ideas.ideas, avoid);
-    await step.run("store-ideas", () => insertNicheIdeas(getDatabase(), today, accepted));
-    return { status: "completed", stored: accepted.length, rejected: ideas.ideas.length - accepted.length };
-  },
+  async ({ step }) => step.run("ensure-todays-ideas", () => withProviderErrors(() => ensureTodaysNicheIdeas())),
 );
+
+/**
+ * Generates today's ideas once. Safe to call from the cron and from the
+ * Daily niches page: an existing day is left alone and the unique index
+ * drops duplicates if two calls race.
+ */
+export async function ensureTodaysNicheIdeas(today = new Date().toISOString().slice(0, 10)) {
+  if (!isOpenAiAvailable()) {
+    logger.warn("Daily niches skipped: OpenAI is not configured");
+    return { status: "skipped" as const, reason: "openai-not-configured" };
+  }
+  const database = getDatabase();
+  if ((await listLatestNicheIdeas(database)).date === today) {
+    return { status: "skipped" as const, reason: "already-generated" };
+  }
+
+  const avoid = await listRecentNicheSeeds(database, daysAgo(today, NO_REPEAT_DAYS));
+  const generated = await createOpenAiAnalysisClient().generateNicheIdeas({ date: today, count: IDEAS_PER_DAY, avoid });
+  const accepted = acceptableNicheIdeas(generated.ideas, avoid);
+  await insertNicheIdeas(database, today, accepted);
+  return { status: "completed" as const, stored: accepted.length, rejected: generated.ideas.length - accepted.length };
+}
 
 /** Drops restricted, too-broad or repeated ideas, whatever the model returned. */
 export function acceptableNicheIdeas(ideas: readonly NicheIdea[], recentSeeds: readonly string[]) {

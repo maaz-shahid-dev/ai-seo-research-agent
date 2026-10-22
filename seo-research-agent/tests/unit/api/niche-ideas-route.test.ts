@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "@/server/http/errors";
 
-const mocks = vi.hoisted(() => ({ requireActiveUser: vi.fn(), listLatestNicheIdeas: vi.fn() }));
+const mocks = vi.hoisted(() => ({ requireActiveUser: vi.fn(), listLatestNicheIdeas: vi.fn(), ensureTodaysNicheIdeas: vi.fn() }));
+vi.mock("@/server/jobs/daily-niches", () => ({ ensureTodaysNicheIdeas: mocks.ensureTodaysNicheIdeas }));
 vi.mock("@/server/auth", () => ({ requireActiveUser: mocks.requireActiveUser }));
 vi.mock("@/server/db/client", () => ({ getDatabase: () => ({}) }));
 vi.mock("@/server/db/repositories", () => ({ listLatestNicheIdeas: mocks.listLatestNicheIdeas }));
@@ -10,7 +11,10 @@ vi.mock("@/server/logging/logger", () => ({ logger: { error: vi.fn(), info: vi.f
 
 import { GET } from "@/app/api/niche-ideas/route";
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.ensureTodaysNicheIdeas.mockResolvedValue({ status: "completed" });
+});
 
 describe("niche ideas API", () => {
   it("returns the latest ideas without internal fields", async () => {
@@ -34,5 +38,19 @@ describe("niche ideas API", () => {
     mocks.requireActiveUser.mockRejectedValue(new AppError("Sign in to continue.", "UNAUTHENTICATED", 401, false));
     expect((await GET(new Request("https://app.example.test/api/niche-ideas"))).status).toBe(401);
     expect(mocks.listLatestNicheIdeas).not.toHaveBeenCalled();
+  });
+});
+
+describe("niche ideas generation on visit", () => {
+  it("creates today's ideas before listing, and still lists older ideas if that fails", async () => {
+    mocks.requireActiveUser.mockResolvedValue({ id: "u" });
+    mocks.listLatestNicheIdeas.mockResolvedValue({ date: "2026-10-21", ideas: [] });
+    mocks.ensureTodaysNicheIdeas.mockRejectedValue(new Error("provider down"));
+
+    const response = await GET(new Request("https://app.example.test/api/niche-ideas"));
+
+    expect(mocks.ensureTodaysNicheIdeas).toHaveBeenCalledOnce();
+    expect(response.status).toBe(200);
+    expect((await response.json()).date).toBe("2026-10-21");
   });
 });
