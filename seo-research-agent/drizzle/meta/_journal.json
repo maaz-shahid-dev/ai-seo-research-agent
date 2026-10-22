@@ -36,6 +36,13 @@
       "when": 1792668958332,
       "tag": "0004_iskills_and_daily_niches",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792675977174,
+      "tag": "0005_niche_idea_types",
+      "breakpoints": true
     }
   ]
 }

@@ -137,10 +137,10 @@ export const DISPLAY_AD_RPM_USD = 20;
  * Rough monthly display-ad revenue for ranking #1–#3, with a ±25% range.
  * visits = volume × CTR; revenue = visits × pageviews/visit × RPM / 1000.
  */
-export function revenueEstimate(monthlyVolume: number | null) {
+export function revenueEstimate(monthlyVolume: number | null, rpmUsd = DISPLAY_AD_RPM_USD) {
   if (monthlyVolume === null || monthlyVolume <= 0) return [];
   return CTR_BY_RANK.map((ctr, index) => {
-    const expected = (monthlyVolume * ctr * PAGEVIEWS_PER_VISIT * DISPLAY_AD_RPM_USD) / 1000;
+    const expected = (monthlyVolume * ctr * PAGEVIEWS_PER_VISIT * rpmUsd) / 1000;
     return { rank: index + 1, monthlyUsd: Math.round(expected), lowUsd: Math.round(expected * 0.75), highUsd: Math.round(expected * 1.25) };
   });
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "niche_ideas" ADD COLUMN "niche_type" varchar(20) DEFAULT 'info' NOT NULL;--> statement-breakpoint
+ALTER TABLE "niche_ideas" ADD CONSTRAINT "niche_ideas_type_check" CHECK ("niche_ideas"."niche_type" in ('info', 'affiliate', 'tools', 'apps', 'ai', 'saas', 'local'));

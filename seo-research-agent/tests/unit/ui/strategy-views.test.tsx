@@ -8,6 +8,8 @@ import { ContentPlanView } from "@/components/dashboard/ContentPlanView";
 import { DailyNichesView } from "@/components/dashboard/DailyNichesView";
 import { IskillsView } from "@/components/dashboard/IskillsView";
 import { KeywordTable } from "@/components/dashboard/KeywordTable";
+import { LaunchPlanView } from "@/components/dashboard/LaunchPlanView";
+import { NicheTypeCard } from "@/components/dashboard/NicheTypeCard";
 import type { KeywordDto, SerpAnalysisDto } from "@/features/research/types";
 
 vi.mock("next-auth/react", () => ({ signOut: vi.fn() }));
@@ -93,7 +95,7 @@ describe("daily niches", () => {
   it("lists today's ideas and checks one with a click", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
       date: "2026-10-22",
-      ideas: [{ id: "i1", niche: "Betta tank care", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "new fish owners" }],
+      ideas: [{ id: "i1", niche: "Betta tank care", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "new fish owners", nicheType: "info" }],
     }), { status: 200 })));
     const onCheck = vi.fn();
     render(<DailyNichesView onCheck={onCheck} />);
@@ -117,5 +119,58 @@ describe("keyword sources", () => {
     const row = screen.getByText("best bearded dragon tank size").closest("tr")!;
     expect(within(row).getByText("Google suggest")).toBeTruthy();
     expect(screen.getAllByText("Google suggest")).toHaveLength(1);
+  });
+});
+
+describe("launch plan", () => {
+  it("shows steps, domains, structure, calendar and expandable briefs", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<LaunchPlanView seed={seed.keyword} keywords={keywords} nicheType="info" />);
+
+    expect(screen.getByText("Launch steps, A to Z")).toBeTruthy();
+    expect(screen.getByText("Lock the niche")).toBeTruthy();
+    expect(screen.getByText("beardeddragontanksetup.com")).toBeTruthy();
+    expect(screen.getByText("Start here")).toBeTruthy();
+    expect(screen.getByText("Week 1")).toBeTruthy();
+
+    const brief = screen.getByText("Bearded Dragon Tank Setup: The Complete Guide", { selector: "details p" });
+    await user.click(brief);
+    const details = brief.closest("details")!;
+    expect(within(details).getByText("Outline (H2s)")).toBeTruthy();
+    expect(within(details).getByText("Target keyword").nextElementSibling?.textContent).toBe("bearded dragon tank setup");
+  });
+
+  it("explains an empty plan", () => {
+    render(<LaunchPlanView seed="x" keywords={[]} nicheType="info" />);
+    expect(screen.getByText("No keywords to plan yet.")).toBeTruthy();
+  });
+});
+
+describe("niche type card", () => {
+  it("explains money, strategy and cautions for the type", () => {
+    render(<NicheTypeCard type="apps" />);
+    expect(screen.getByRole("heading", { name: "Apps & APK" })).toBeTruthy();
+    expect(screen.getByText(/Never host or link modded/)).toBeTruthy();
+  });
+});
+
+describe("daily niche filters", () => {
+  it("filters ideas by niche type", async () => {
+    const user = userEvent.setup({ delay: null });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      date: "2026-10-22",
+      ideas: [
+        { id: "a", niche: "AI agents for small business", seedKeyword: "ai agents for small business", problem: "p", audience: "owners", nicheType: "ai" },
+        { id: "b", niche: "CRM for freelancers", seedKeyword: "best crm for freelancers", problem: "p", audience: "freelancers", nicheType: "saas" },
+      ],
+    }), { status: 200 })));
+    render(<DailyNichesView onCheck={vi.fn()} />);
+
+    await screen.findByText("CRM for freelancers");
+    await user.click(screen.getByRole("button", { name: "AI tools & agents (1)" }));
+    expect(screen.queryByText("CRM for freelancers")).toBeNull();
+    expect(screen.getByText("AI agents for small business", { selector: "p" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "All (2)" }));
+    expect(screen.getByText("CRM for freelancers")).toBeTruthy();
   });
 });

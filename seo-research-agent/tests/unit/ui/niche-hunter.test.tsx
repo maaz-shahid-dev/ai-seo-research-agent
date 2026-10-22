@@ -294,6 +294,8 @@ describe("niche verdict card", () => {
     expect(await within(card).findByText("Ideal — low-hanging fruit")).toBeTruthy();
     expect(card.textContent).toContain("3 sites under authority 20 in the top 10, 1 dedicated site ranking");
     expect(within(card).getByText("Yes")).toBeTruthy();
-    expect(card.textContent).toContain("$784");
+    // Commercial keywords make this an affiliate niche: $25 RPM → 100k × 28% × 1.4 × $25 / 1000.
+    expect(card.textContent).toContain("$980");
+    expect(card.textContent).toContain("display ads at $25 RPM");
   });
 });

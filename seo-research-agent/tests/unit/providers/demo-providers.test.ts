@@ -125,3 +125,11 @@ describe("demo mode switch", () => {
     expect((await providers.createOpenAiAnalysisClient().generateNicheIdeas({ date: "2026-10-22", count: 2, avoid: [] })).ideas).toHaveLength(2);
   });
 });
+
+describe("demo daily niches by type", () => {
+  it("covers every niche type each day", async () => {
+    const { ideas } = await createDemoOpenAiClient().generateNicheIdeas({ date: "2026-10-22", count: 14, avoid: [] });
+    expect(new Set(ideas.map((idea) => idea.nicheType))).toEqual(new Set(["info", "affiliate", "tools", "apps", "ai", "saas", "local"]));
+    expect(acceptableNicheIdeas(ideas, [])).toHaveLength(14);
+  });
+});

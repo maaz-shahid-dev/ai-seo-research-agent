@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 
 import {
   authorityBands,
+  DISPLAY_AD_RPM_USD,
   EASY_TARGET_AUTHORITY_MAX,
   nicheVerdict,
   revenueEstimate,
@@ -27,10 +28,12 @@ type NicheVerdictProps = {
   error: string | null;
   /** Show the revenue estimate (the main card does; the side panel keeps it compact). */
   showRevenue?: boolean;
+  /** Ad revenue per 1,000 pageviews for this niche type. */
+  rpmUsd?: number;
 };
 
 /** "Is this niche easy?" — verdict, authority spread and revenue for one keyword's top 10. */
-export function NicheVerdict({ keyword, serp, error, showRevenue = true }: NicheVerdictProps) {
+export function NicheVerdict({ keyword, serp, error, showRevenue = true, rpmUsd = DISPLAY_AD_RPM_USD }: NicheVerdictProps) {
   if (error && !serp) return <p className="text-sm text-amber-700" role="status">{error}</p>;
   if (!serp || isJobInProgress(serp)) {
     return (
@@ -46,7 +49,7 @@ export function NicheVerdict({ keyword, serp, error, showRevenue = true }: Niche
   const bands = authorityBands(serp.results);
   const easy = serp.results.filter((result) => result.authority !== null && result.authority <= EASY_TARGET_AUTHORITY_MAX).length;
   const dedicated = serp.results.filter((result) => result.isHomepage).length;
-  const revenue = showRevenue ? revenueEstimate(keyword.searchVolume) : [];
+  const revenue = showRevenue ? revenueEstimate(keyword.searchVolume, rpmUsd) : [];
 
   return (
     <div className="space-y-4">
@@ -79,7 +82,7 @@ export function NicheVerdict({ keyword, serp, error, showRevenue = true }: Niche
 
       {revenue.length > 0 ? (
         <div>
-          <p className="text-xs font-medium text-slate-500">If you rank #1–#3 (display ads, estimate)</p>
+          <p className="text-xs font-medium text-slate-500">If you rank #1–#3 (display ads at ${rpmUsd} RPM, estimate)</p>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {revenue.map((estimate) => (
               <div key={estimate.rank} className="rounded-lg border border-slate-200 px-3 py-2 text-center">

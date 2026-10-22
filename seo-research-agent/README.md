@@ -154,6 +154,17 @@ The 10 best opportunities (volume × easiness) are analyzed automatically after 
   - Niches to avoid are gambling, adult, piracy and cracks, file/movie/MP3 downloads, and YMYL health or finance (`src/features/research/restricted.ts`).
 - **Daily niches:** a 05:00 UTC Inngest cron asks OpenAI for 12 specific niche ideas. It drops restricted, single-word and recently repeated ideas, and stores the rest in `niche_ideas`. Users see them under Daily niches and can check one with a click.
 
+### Niche types and launch plan
+
+- **Niche types** (`src/features/research/niche-types.ts`): each search is classified as Info blogging, Affiliate / reviews, Online tools, Apps & APK, AI tools & agents, SaaS / software or Local services. Explicit signals (calculator, apk, ai agent, software, near me…) come first, then keyword intent. Each type has its own monetization, strategy, cautions and ad RPM, and the revenue estimate uses that RPM. Apps & APK means guides and alternatives only; modded or cracked APKs stay on the avoid list.
+- **Launch plan** (`src/features/research/blueprint.ts`): built programmatically from the research. It includes:
+  - A-to-Z launch steps tailored to the type;
+  - exact, partial and brandable domain ideas;
+  - silo structure with URLs and internal links;
+  - a content brief per article (target and secondary keywords, H2 outline, questions to answer, word count, links);
+  - a 12-week calendar that publishes the pillar first, then quick wins.
+- **Daily niches by type:** ideas are spread across every niche type, and users can filter them.
+
 DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection, SERP Google Autocomplete and Labs keyword overview. Site ranking-keyword counts come from the WHOIS overview's organic count. Manual SERP lookups are limited to 60 per user per hour, and content gaps to 10.
 
 Important directories:

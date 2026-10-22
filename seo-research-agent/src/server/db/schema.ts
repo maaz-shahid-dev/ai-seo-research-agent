@@ -21,6 +21,8 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+import type { NicheType } from "@/features/research/niche-types";
+
 export const userRole = pgEnum("user_role", ["user", "admin"]);
 export const userStatus = pgEnum("user_status", ["active", "disabled"]);
 export const projectStatus = pgEnum("project_status", ["active", "archived"]);
@@ -1015,9 +1017,11 @@ export const nicheIdeas = pgTable(
     seedKeyword: varchar("seed_keyword", { length: 120 }).notNull(),
     problem: varchar("problem", { length: 300 }).notNull(),
     audience: varchar("audience", { length: 160 }).notNull(),
+    nicheType: varchar("niche_type", { length: 20 }).$type<NicheType>().default("info").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check("niche_ideas_type_check", sql`${table.nicheType} in ('info', 'affiliate', 'tools', 'apps', 'ai', 'saas', 'local')`),
     uniqueIndex("niche_ideas_date_seed_unique").on(table.ideaDate, sql`lower(${table.seedKeyword})`),
     index("niche_ideas_date_idx").on(table.ideaDate),
     check("niche_ideas_seed_not_blank_check", sql`char_length(btrim(${table.seedKeyword})) > 0`),

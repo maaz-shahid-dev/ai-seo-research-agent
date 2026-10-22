@@ -308,6 +308,7 @@ export const nicheIdeaSchema = z
     seedKeyword: boundedText(80),
     problem: boundedText(200),
     audience: boundedText(120),
+    nicheType: z.enum(["info", "affiliate", "tools", "apps", "ai", "saas", "local"]),
   })
   .strict();
 

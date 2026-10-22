@@ -1,5 +1,6 @@
 import type { toProjectDto } from "@/features/projects/dto";
 
+import type { NicheType } from "./niche-types";
 import type { toAiAnalysisDto, toContentGapDto, toKeywordDto, toResearchRunDto, toSerpAnalysisDto } from "./dto";
 
 /** Client-side shapes, derived from the server DTOs so the two cannot drift. */
@@ -43,5 +44,5 @@ export function isRunInProgress(run: Pick<ResearchRunDto, "status">) {
 }
 
 /** GET /api/niche-ideas */
-export type NicheIdeaDto = { id: string; niche: string; seedKeyword: string; problem: string; audience: string };
+export type NicheIdeaDto = { id: string; niche: string; seedKeyword: string; problem: string; audience: string; nicheType: NicheType };
 export type NicheIdeasResponse = { date: string | null; ideas: NicheIdeaDto[] };

@@ -2,10 +2,12 @@ import "server-only";
 
 import { desc, eq, gte, max } from "drizzle-orm";
 
+import type { NicheType } from "@/features/research/niche-types";
+
 import type { DatabaseClient } from "../client";
 import { nicheIdeas } from "../schema";
 
-export type NicheIdeaInput = { niche: string; seedKeyword: string; problem: string; audience: string };
+export type NicheIdeaInput = { niche: string; seedKeyword: string; problem: string; audience: string; nicheType: NicheType };
 
 /** Stores a day's ideas; re-running the same day never duplicates a seed. */
 export async function insertNicheIdeas(database: DatabaseClient, ideaDate: string, ideas: readonly NicheIdeaInput[]) {
@@ -18,6 +20,7 @@ export async function insertNicheIdeas(database: DatabaseClient, ideaDate: strin
       seedKeyword: idea.seedKeyword.trim().toLowerCase().slice(0, 120),
       problem: idea.problem.trim().slice(0, 300),
       audience: idea.audience.trim().slice(0, 160),
+      nicheType: idea.nicheType,
     })))
     .onConflictDoNothing();
 }

@@ -29,6 +29,7 @@ export async function GET(request: Request) {
         seedKeyword: idea.seedKeyword,
         problem: idea.problem,
         audience: idea.audience,
+        nicheType: idea.nicheType,
       })),
     }));
   } catch (error) {
