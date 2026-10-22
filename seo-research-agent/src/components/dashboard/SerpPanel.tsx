@@ -2,7 +2,8 @@
 
 import { ExternalLink, Loader2, X } from "lucide-react";
 
-import { competitionLevel, EASY_TARGET_AUTHORITY_MAX, WEAK_SPOT_LABELS } from "@/features/research/niche";
+import { ISKILLS_BEATABLE_AUTHORITY_MAX } from "@/features/research/iskills";
+import { competitionLevel, WEAK_SPOT_LABELS } from "@/features/research/niche";
 import { isJobInProgress, type KeywordDto, type SerpResultDto } from "@/features/research/types";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import { formatCurrencyMicros, formatNumber } from "@/lib/format";
 import { safeExternalUrl } from "@/lib/url";
 
 import { NicheVerdict } from "./NicheVerdict";
+import { SerpInsights } from "./SerpInsights";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
 type SerpPanelProps = {
@@ -61,6 +63,8 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
 
           {serp?.status === "completed" ? <NicheVerdict keyword={keyword} serp={serp} error={null} showRevenue={false} /> : null}
 
+          {serp?.status === "completed" ? <SerpInsights results={serp.results} /> : null}
+
           <TrendBars trend={keyword.trend} />
 
           <section aria-labelledby="top10-title">
@@ -82,7 +86,7 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
             ) : serp.status === "failed" ? (
               <p className="mt-3 text-sm text-rose-700" role="alert">{serp.errorMessage ?? "SERP analysis failed."}</p>
             ) : (
-              <ol className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
+              <ol aria-labelledby="top10-title" className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {serp.results.map((result) => (
                   <SerpRow key={result.rank} result={result} isLowest={result.rank === lowestAuthority} />
                 ))}
@@ -97,8 +101,8 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
 
 function SerpRow({ result, isLowest }: { result: SerpResultDto; isLowest: boolean }) {
   const href = safeExternalUrl(result.url);
-  // Green rows are easy targets, as in classic niche-hunting tools.
-  const easy = result.authority !== null && result.authority <= EASY_TARGET_AUTHORITY_MAX;
+  // Green rows (DR 20 or less) are realistic targets, as in classic niche-hunting tools.
+  const easy = result.authority !== null && result.authority <= ISKILLS_BEATABLE_AUTHORITY_MAX;
   return (
     <li className={`flex gap-3 p-3 ${easy ? "bg-emerald-50/60" : ""}`}>
       <span className="w-6 shrink-0 pt-0.5 text-right text-sm font-semibold tabular-nums text-slate-400">{result.rank}</span>

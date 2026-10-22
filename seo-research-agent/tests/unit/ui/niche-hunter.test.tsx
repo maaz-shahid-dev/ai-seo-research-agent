@@ -135,7 +135,7 @@ describe("SERP panel", () => {
 
     expect(await screen.findByText("Analyzing the top 10…")).toBeTruthy();
     await act(() => vi.advanceTimersByTimeAsync(2_100));
-    const list = await screen.findByRole("list");
+    const list = await screen.findByRole("list", { name: "Top 10 results" });
 
     expect(fetchMock.mock.calls[0]![1]).toMatchObject({ method: "POST" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
@@ -147,13 +147,15 @@ describe("SERP panel", () => {
     expect(within(screen.getByRole("dialog")).getByText("Maybe — still possible")).toBeTruthy();
     expect(within(list).getByText("Dedicated site")).toBeTruthy();
     expect(within(list).getByText("Lowest authority")).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByRole("img", { name: /^Top 10 results: [0-9]+ with authority 0–20/ })).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText("Kinds of sites")).toBeTruthy();
   });
 
   it("never renders unsafe provider URLs as links", async () => {
     mockApi({ [`POST /api/research/${RUN_ID}/serp/1`]: [() => ({ serp })] });
     render(<SerpPanel runId={RUN_ID} keyword={keyword(1, "running shoes")} onClose={vi.fn()} />);
 
-    await screen.findByRole("list");
+    await screen.findByRole("list", { name: "Top 10 results" });
     expect(screen.queryByRole("link", { name: /Evil link/ })).toBeNull();
     expect(screen.getByRole("link", { name: /Best shoes thread/ }).getAttribute("rel")).toBe("noopener noreferrer");
   });
