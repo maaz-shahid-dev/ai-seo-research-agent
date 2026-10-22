@@ -8,7 +8,11 @@ import { SearchBar } from "@/components/dashboard/SearchBar";
 import { AppShell } from "@/components/layout/AppShell";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+  vi.unstubAllGlobals();
+});
 
 function renderShell(demo = false) {
   const onNavigate = vi.fn();
@@ -69,6 +73,38 @@ describe("app shell", () => {
     await user.click(screen.getByRole("button", { name: "Open menu" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "recent search" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("desktop sidebar", () => {
+  const sidebar = () => document.querySelector("aside")!;
+
+  it("collapses to an icon rail, keeps accessible names and remembers the choice", async () => {
+    const { onNavigate, user } = renderShell();
+    expect(within(sidebar()).getByText("recent search")).toBeTruthy();
+
+    await user.click(within(sidebar()).getByRole("button", { name: "Collapse sidebar" }));
+    expect(within(sidebar()).queryByText("Daily niches")).toBeNull();
+    await user.click(within(sidebar()).getByRole("button", { name: "Daily niches" }));
+    expect(onNavigate).toHaveBeenCalledWith("ideas");
+    expect(within(sidebar()).queryByRole("button", { name: "recent search" })).toBeNull();
+    expect(window.localStorage.getItem("seo-research:sidebar")).toBe("collapsed");
+
+    cleanup();
+    renderShell();
+    expect(within(sidebar()).getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
+    await user.click(within(sidebar()).getByRole("button", { name: "Expand sidebar" }));
+    expect(within(sidebar()).getByText("Daily niches")).toBeTruthy();
+  });
+
+  it("starts collapsed on medium screens until the user expands it", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: false, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const { user } = renderShell();
+    expect(within(sidebar()).getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
+
+    await user.click(within(sidebar()).getByRole("button", { name: "Expand sidebar" }));
+    expect(within(sidebar()).getByText("recent search")).toBeTruthy();
+    expect(window.localStorage.getItem("seo-research:sidebar")).toBe("expanded");
   });
 });
 

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
 import { DailyNichesView } from "./DailyNichesView";
+import { HistoryView } from "./HistoryView";
 import { ProjectsPanel } from "./ProjectsPanel";
 import { RecentSearches } from "./RecentSearches";
 import { ResearchView } from "./ResearchView";
@@ -88,6 +89,16 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
     }
   }
 
+  function openRun(run: ResearchRunDto) {
+    setSelectedRun(run);
+    setView("research");
+  }
+
+  function forgetRun(runId: string) {
+    recent.remove(runId);
+    if (selectedRun?.id === runId) setSelectedRun(null);
+  }
+
   /** Runs a search for a suggested niche in its own country and shows its results. */
   function checkNiche(seed: string, countryCode: string) {
     setView("research");
@@ -119,10 +130,8 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
       <RecentSearches
         runs={recent.runs}
         selectedId={displayedRun?.id ?? null}
-        onSelect={(run) => {
-          setSelectedRun(run);
-          setView("research");
-        }}
+        onSelect={openRun}
+        onViewAll={() => setView("history")}
       />
     </div>
   );
@@ -138,6 +147,8 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
     >
       {view === "ideas" ? (
         <DailyNichesView onCheck={checkNiche} />
+      ) : view === "history" && project ? (
+        <HistoryView key={project.id} projectId={project.id} projectName={project.name} onOpen={openRun} onDeleted={forgetRun} />
       ) : view === "projects" ? (
         <ProjectsPanel
           projects={projects}

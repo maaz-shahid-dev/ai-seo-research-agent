@@ -7,13 +7,20 @@ type RecentSearchesProps = {
   runs: ResearchRunDto[];
   selectedId: string | null;
   onSelect: (run: ResearchRunDto) => void;
+  /** Opens the full history screen. */
+  onViewAll: () => void;
 };
 
 /** Sidebar list of the project's latest searches, with a status dot each. */
-export function RecentSearches({ runs, selectedId, onSelect }: RecentSearchesProps) {
+export function RecentSearches({ runs, selectedId, onSelect, onViewAll }: RecentSearchesProps) {
   return (
     <nav aria-label="Recent searches">
-      <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Recent searches</p>
+      <div className="flex items-center justify-between px-3 pb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Recent searches</p>
+        {runs.length > 0 ? (
+          <button type="button" onClick={onViewAll} className="text-[11px] font-semibold text-indigo-700 hover:underline">View all</button>
+        ) : null}
+      </div>
       {runs.length === 0 ? (
         <p className="px-3 text-sm text-slate-400">No searches yet.</p>
       ) : (

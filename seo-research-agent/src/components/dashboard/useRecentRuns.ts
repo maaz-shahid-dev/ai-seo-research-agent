@@ -59,7 +59,11 @@ export function useRecentRuns(projectId: string | null) {
     );
   }, []);
 
-  return { runs: state.runs, loading: state.loading, error: state.error, upsert };
+  const remove = useCallback((runId: string) => {
+    setState((current) => ({ ...current, runs: current.runs.filter((run) => run.id !== runId) }));
+  }, []);
+
+  return { runs: state.runs, loading: state.loading, error: state.error, upsert, remove };
 }
 
 /** Newest first, unique by id, preferring entries from `preferred`. */
