@@ -34,8 +34,8 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
     setDrawerOpen(false);
   };
 
-  const content = (
-    <SidebarContent view={view} onNavigate={navigate} user={user} demo={demo} onSignOut={onSignOut}>
+  const content = (onClose?: () => void) => (
+    <SidebarContent view={view} onNavigate={navigate} user={user} demo={demo} onSignOut={onSignOut} onClose={onClose}>
       {/* Selecting a recent search on mobile should also close the drawer. */}
       <div onClickCapture={(event) => { if ((event.target as HTMLElement).closest("button")) setDrawerOpen(false); }}>
         {sidebar}
@@ -45,7 +45,7 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
 
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-950">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white lg:block">{drawerOpen ? null : content}</aside>
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white lg:block">{drawerOpen ? null : content()}</aside>
 
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
         <button
@@ -71,15 +71,7 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
             tabIndex={-1}
             className="relative h-full w-72 max-w-[85vw] bg-white shadow-xl"
           >
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(false)}
-              className="absolute right-3 top-3 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
-            {content}
+            {content(() => setDrawerOpen(false))}
           </div>
         </div>
       ) : null}
@@ -91,19 +83,28 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
   );
 }
 
-function SidebarContent({ view, onNavigate, user, demo, onSignOut, children }: {
+function SidebarContent({ view, onNavigate, user, demo, onSignOut, onClose, children }: {
   view: AppView;
   onNavigate: (view: AppView) => void;
   user: { name: string };
   demo: boolean;
   onSignOut: () => void;
+  /** Present when shown as the mobile drawer. */
+  onClose?: () => void;
   children: ReactNode;
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-5 py-5">
+      <div className="flex items-center justify-between gap-2 px-5 py-5">
         <Brand />
-        {demo ? <DemoBadge /> : null}
+        <div className="flex items-center gap-1">
+          {demo ? <DemoBadge /> : null}
+          {onClose ? (
+            <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Close menu">
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <nav aria-label="Main" className="space-y-1 px-3">

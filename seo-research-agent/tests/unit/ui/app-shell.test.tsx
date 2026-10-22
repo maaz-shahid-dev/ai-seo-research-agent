@@ -58,6 +58,10 @@ describe("app shell", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Open menu" }));
+    await user.click(screen.getByRole("button", { name: "Close menu" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Projects" }));
     expect(onNavigate).toHaveBeenCalledWith("projects");
     expect(screen.queryByRole("dialog")).toBeNull();
