@@ -5,7 +5,7 @@ import type { NicheIdeaDto } from "@/features/research/types";
 
 const idea = (id: string, overrides: Partial<NicheIdeaDto> = {}): NicheIdeaDto => ({
   id, niche: id, seedKeyword: id, problem: "p", audience: "a", nicheType: "info", countryCode: "US",
-  searchVolume: 1_000, difficulty: 30, lowAuthorityCount: 2, ...overrides,
+  searchVolume: 1_000, difficulty: 30, lowAuthorityCount: 2, ideaDate: "2026-10-22", reaction: null, ...overrides,
 });
 
 describe("daily idea ranking", () => {

@@ -94,7 +94,7 @@ describe("iSkills check", () => {
 describe("daily niches", () => {
   it("lists today's ideas and checks one with a click", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      date: "2026-10-22",
+      date: "2026-10-22", dates: ["2026-10-22"],
       ideas: [{
         id: "i1", niche: "Betta tank care", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "new fish owners",
         nicheType: "info", countryCode: "GB", searchVolume: 2_400, difficulty: 12, lowAuthorityCount: 4,
@@ -118,7 +118,7 @@ describe("daily niches", () => {
       searchVolume, difficulty: 20, lowAuthorityCount,
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      date: "2026-10-22",
+      date: "2026-10-22", dates: ["2026-10-22"],
       ideas: [idea("a", "Small niche", 500, 5), idea("b", "Big niche", 9_000, 1), idea("c", "Unchecked niche", 3_000, null)],
     }), { status: 200 })));
     const user = userEvent.setup({ delay: null });
@@ -134,7 +134,7 @@ describe("daily niches", () => {
   });
 
   it("explains when no ideas exist yet", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ date: null, ideas: [] }), { status: 200 })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ date: null, dates: [], ideas: [] }), { status: 200 })));
     render(<DailyNichesView onCheck={vi.fn()} />);
     expect(await screen.findByText(/New ideas appear every morning/)).toBeTruthy();
   });
@@ -217,7 +217,7 @@ describe("daily niche filters", () => {
   it("filters ideas by niche type", async () => {
     const user = userEvent.setup({ delay: null });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      date: "2026-10-22",
+      date: "2026-10-22", dates: ["2026-10-22"],
       ideas: [
         { id: "a", niche: "AI agents for small business", seedKeyword: "ai agents for small business", problem: "p", audience: "owners", nicheType: "ai" },
         { id: "b", niche: "CRM for freelancers", seedKeyword: "best crm for freelancers", problem: "p", audience: "freelancers", nicheType: "saas" },

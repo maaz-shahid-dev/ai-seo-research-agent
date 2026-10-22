@@ -12,6 +12,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -1039,6 +1040,28 @@ export const nicheIdeas = pgTable(
     uniqueIndex("niche_ideas_date_seed_unique").on(table.ideaDate, sql`lower(${table.seedKeyword})`),
     index("niche_ideas_date_idx").on(table.ideaDate),
     check("niche_ideas_seed_not_blank_check", sql`char_length(btrim(${table.seedKeyword})) > 0`),
+  ],
+);
+
+export type NicheIdeaReactionStatus = "favorite" | "dismissed";
+
+/** A user's favorite or dismissed daily ideas; one row per user and idea. */
+export const nicheIdeaReactions = pgTable(
+  "niche_idea_reactions",
+  {
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ideaId: uuid("idea_id")
+      .notNull()
+      .references(() => nicheIdeas.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 12 }).$type<NicheIdeaReactionStatus>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerId, table.ideaId] }),
+    index("niche_idea_reactions_owner_status_idx").on(table.ownerId, table.status, table.updatedAt),
+    check("niche_idea_reactions_status_check", sql`${table.status} in ('favorite', 'dismissed')`),
   ],
 );
 

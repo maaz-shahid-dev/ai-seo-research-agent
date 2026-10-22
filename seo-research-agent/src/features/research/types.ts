@@ -57,5 +57,14 @@ export type NicheIdeaDto = {
   difficulty: number | null;
   /** Top-10 sites with authority 20 or less. */
   lowAuthorityCount: number | null;
+  ideaDate: string;
+  /** The signed-in user's status for this idea. */
+  reaction: "favorite" | "dismissed" | null;
 };
-export type NicheIdeasResponse = { date: string | null; ideas: NicheIdeaDto[] };
+export type NicheIdeasResponse = {
+  /** The day shown; null for the Favorites view or before any ideas exist. */
+  date: string | null;
+  /** Days with ideas, newest first. */
+  dates: string[];
+  ideas: NicheIdeaDto[];
+};

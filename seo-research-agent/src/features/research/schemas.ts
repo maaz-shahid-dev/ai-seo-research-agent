@@ -34,6 +34,28 @@ export const researchHistoryQuerySchema = z.object({
   cursor: z.string().max(300).optional(),
 });
 
+/** A real calendar day as YYYY-MM-DD (rejects 2026-02-31). */
+export const isoDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.")
+  .refine((value) => {
+    const time = Date.parse(`${value}T00:00:00Z`);
+    return !Number.isNaN(time) && new Date(time).toISOString().startsWith(value);
+  }, "Invalid date.");
+
+export const nicheIdeasQuerySchema = z
+  .object({
+    date: isoDateSchema.optional(),
+    view: z.enum(["favorites"]).optional(),
+  })
+  .strict();
+
+export const nicheIdeaIdSchema = z.string().uuid();
+
+export const nicheIdeaReactionSchema = z
+  .object({ status: z.enum(["favorite", "dismissed"]).nullable() })
+  .strict();
+
 export type ResearchRequestInput = z.infer<typeof researchRequestSchema>;
 
 export function normalizeKeyword(value: string) {
