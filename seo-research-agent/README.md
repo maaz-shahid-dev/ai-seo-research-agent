@@ -140,7 +140,19 @@ Every finished search shows a verdict for the searched topic, like popular niche
 
 The 10 best opportunities (volume × easiness) are analyzed automatically after each search. Any other keyword is analyzed when its row is opened. Website metrics (authority, traffic, age, backlinks, referring domains) are cached per registrable domain for 30 days in `domain_metrics`, shared across users because they describe the public web. Content gap compares the project's website with the three strongest competitors from the analyzed SERPs.
 
-DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection. Manual SERP lookups are limited to 60 per user per hour, and content gaps to 10.
+### Keyword collection, content plan, iSkills check and daily niches
+
+- **Google Autocomplete expansion:** every search also asks Google Autocomplete (through DataForSEO) for the seed plus a–z, question words (how, what, why, can…), and modifiers (for, with, vs, best…). That's about 50 lookups at roughly $0.002 each. New suggestions that contain all seed words get volume, CPC, competition, trend, difficulty and intent from Labs keyword overview, and are tagged "Google suggest". If this enrichment fails, the search still completes.
+- **Content plan:** keywords are grouped by their strongest topic word into articles (pillar, how-to, best-of, comparison, guide). The page count rates coverage as small (≤10), manageable (≤60) or large.
+- **iSkills check:** the iSkills niche-selection rules, each marked pass, caution or fail:
+  - not a niche to avoid; specific (3+ words); solves a problem; start micro/nano;
+  - 3+ beatable sites with authority ≤ 20; no AI Overview; young, small and dedicated sites ranking;
+  - manageable coverage; low backlink needs; enough volume.
+  - It ends with a Go / Maybe / Avoid verdict and the weakest page-1 sites, with traffic, ranking keywords and age.
+  - Niches to avoid are gambling, adult, piracy and cracks, file/movie/MP3 downloads, and YMYL health or finance (`src/features/research/restricted.ts`).
+- **Daily niches:** a 05:00 UTC Inngest cron asks OpenAI for 12 specific niche ideas. It drops restricted, single-word and recently repeated ideas, and stores the rest in `niche_ideas`. Users see them under Daily niches and can check one with a click.
+
+DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection, SERP Google Autocomplete and Labs keyword overview. Site ranking-keyword counts come from the WHOIS overview's organic count. Manual SERP lookups are limited to 60 per user per hour, and content gaps to 10.
 
 Important directories:
 
