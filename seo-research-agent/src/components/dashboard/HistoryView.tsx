@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Loader2, Search, Trash2 } from "lucide-react";
+import { GitCompare, History, Loader2, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { marketFor } from "@/features/research/markets";
@@ -11,6 +11,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { apiRequest, errorMessage, isAbortError } from "@/lib/api-client";
 import { formatNumber, formatRelativeTime } from "@/lib/format";
+
+import { CompareRunsView } from "./CompareRunsView";
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 300;
@@ -44,6 +46,9 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Up to two finished searches picked for comparison.
+  const [selected, setSelected] = useState<ResearchRunDto[]>([]);
+  const [comparing, setComparing] = useState(false);
 
   // Reset synchronously when the project or search changes so stale rows never flash.
   if (state.key !== key) {
@@ -90,6 +95,7 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
     try {
       await apiRequest(`/api/research/${encodeURIComponent(run.id)}`, { method: "DELETE" });
       setState((current) => ({ ...current, runs: current.runs.filter((item) => item.id !== run.id) }));
+      setSelected((current) => current.filter((item) => item.id !== run.id));
       setConfirmingId(null);
       onDeleted(run.id);
     } catch (error) {
@@ -100,6 +106,15 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
   }
 
   const empty = !state.loading && !state.error && state.runs.length === 0;
+
+  function toggleSelected(run: ResearchRunDto) {
+    setSelected((current) =>
+      current.some((item) => item.id === run.id) ? current.filter((item) => item.id !== run.id) : [...current, run].slice(-2));
+  }
+
+  if (comparing && selected.length === 2) {
+    return <CompareRunsView runs={[selected[0]!, selected[1]!]} onBack={() => setComparing(false)} />;
+  }
 
   return (
     <div className="space-y-4">
@@ -125,6 +140,16 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
         />
       </div>
 
+      {selected.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-800">
+          <span className="flex-1">{selected.length === 2 ? "Two searches selected." : "Select one more finished search to compare."}</span>
+          <Button size="sm" disabled={selected.length !== 2} onClick={() => setComparing(true)}>
+            <GitCompare className="h-4 w-4" aria-hidden="true" /> Compare
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelected([])}>Clear</Button>
+        </div>
+      ) : null}
+
       {state.error ? <ErrorState>{state.error}</ErrorState> : null}
       {deleteError ? <ErrorState>{deleteError}</ErrorState> : null}
       {empty ? (
@@ -138,6 +163,15 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
             const market = marketFor(run.countryCode);
             return (
               <li key={run.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+                <input
+                  type="checkbox"
+                  checked={selected.some((item) => item.id === run.id)}
+                  onChange={() => toggleSelected(run)}
+                  disabled={run.status !== "completed"}
+                  aria-label={`Select “${run.query}” to compare`}
+                  title={run.status === "completed" ? "Select to compare" : "Only finished searches can be compared"}
+                  className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-indigo-600 disabled:cursor-not-allowed"
+                />
                 <button type="button" onClick={() => onOpen(run)} className="min-w-0 flex-1 text-left">
                   <span className="block truncate font-medium text-slate-900 hover:text-indigo-700">{run.query}</span>
                   <span className="mt-0.5 block text-xs text-slate-500">
