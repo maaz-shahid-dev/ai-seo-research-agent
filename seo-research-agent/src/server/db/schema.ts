@@ -865,6 +865,144 @@ export const providerMarkets = pgTable(
   ],
 );
 
+/**
+ * Public website metrics shared by every tenant (they describe the open web,
+ * not user data), cached so each domain is paid for at most once per TTL.
+ */
+export const domainMetrics = pgTable(
+  "domain_metrics",
+  {
+    domain: varchar("domain", { length: 253 }).primaryKey(),
+    authority: smallint("authority"),
+    backlinks: bigint("backlinks", { mode: "number" }),
+    referringDomains: integer("referring_domains"),
+    monthlyTraffic: bigint("monthly_traffic", { mode: "number" }),
+    registeredAt: timestamp("registered_at", { withTimezone: true }),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("domain_metrics_expiry_idx").on(table.expiresAt),
+    check("domain_metrics_domain_normalized_check", sql`${table.domain} = lower(btrim(${table.domain})) and char_length(${table.domain}) > 0`),
+    check("domain_metrics_authority_check", sql`${table.authority} is null or ${table.authority} between 0 and 100`),
+    check("domain_metrics_backlinks_check", sql`${table.backlinks} is null or ${table.backlinks} >= 0`),
+    check("domain_metrics_referring_domains_check", sql`${table.referringDomains} is null or ${table.referringDomains} >= 0`),
+    check("domain_metrics_traffic_check", sql`${table.monthlyTraffic} is null or ${table.monthlyTraffic} >= 0`),
+    check("domain_metrics_expiry_check", sql`${table.expiresAt} > ${table.fetchedAt}`),
+  ],
+);
+
+/** One SERP analysis per keyword: job state plus the computed niche signals. */
+export const serpAnalyses = pgTable(
+  "serp_analyses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: uuid("owner_id").notNull(),
+    runId: uuid("run_id").notNull(),
+    keywordResultId: bigint("keyword_result_id", { mode: "number" }).notNull(),
+    status: analysisStatus("status").default("queued").notNull(),
+    snapshotId: uuid("snapshot_id"),
+    nicheScore: smallint("niche_score"),
+    hasAiOverview: boolean("has_ai_overview"),
+    version: integer("version").default(1).notNull(),
+    leaseOwner: varchar("lease_owner", { length: 160 }),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    errorCode: varchar("error_code", { length: 80 }),
+    errorMessage: varchar("error_message", { length: 500 }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "serp_analyses_keyword_run_owner_fk",
+      columns: [table.keywordResultId, table.runId, table.ownerId],
+      foreignColumns: [keywordResults.id, keywordResults.runId, keywordResults.ownerId],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "serp_analyses_snapshot_run_owner_fk",
+      columns: [table.snapshotId, table.runId, table.ownerId],
+      foreignColumns: [serpSnapshots.id, serpSnapshots.runId, serpSnapshots.ownerId],
+    }),
+    uniqueIndex("serp_analyses_owner_keyword_unique").on(table.ownerId, table.keywordResultId),
+    index("serp_analyses_owner_run_idx").on(table.ownerId, table.runId),
+    index("serp_analyses_status_lease_idx")
+      .on(table.status, table.leaseExpiresAt)
+      .where(sql`${table.status} in ('queued', 'running')`),
+    check("serp_analyses_niche_score_check", sql`${table.nicheScore} is null or ${table.nicheScore} between 0 and 100`),
+    check("serp_analyses_version_check", sql`${table.version} > 0`),
+    check(
+      "serp_analyses_lease_state_check",
+      sql`(${table.status} = 'running') = (${table.leaseOwner} is not null and ${table.leaseExpiresAt} is not null)`,
+    ),
+    check(
+      "serp_analyses_terminal_state_check",
+      sql`((${table.status} in ('completed', 'failed')) = (${table.finishedAt} is not null))`,
+    ),
+    check(
+      "serp_analyses_completed_snapshot_check",
+      sql`${table.status} <> 'completed' or ${table.snapshotId} is not null`,
+    ),
+  ],
+);
+
+type ContentGapKeyword = {
+  keyword: string;
+  searchVolume: number | null;
+  difficulty: number | null;
+  cpcMicros: number | null;
+  competitorDomain: string;
+  competitorRank: number;
+};
+
+/** Keywords competitors rank for that the project's website does not. */
+export const contentGapReports = pgTable(
+  "content_gap_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: uuid("owner_id").notNull(),
+    runId: uuid("run_id").notNull(),
+    targetDomain: varchar("target_domain", { length: 253 }).notNull(),
+    status: analysisStatus("status").default("queued").notNull(),
+    competitors: jsonb("competitors").$type<string[]>().default([]).notNull(),
+    keywords: jsonb("keywords").$type<ContentGapKeyword[]>().default([]).notNull(),
+    version: integer("version").default(1).notNull(),
+    leaseOwner: varchar("lease_owner", { length: 160 }),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    errorCode: varchar("error_code", { length: 80 }),
+    errorMessage: varchar("error_message", { length: 500 }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "content_gap_reports_run_owner_fk",
+      columns: [table.runId, table.ownerId],
+      foreignColumns: [researchRuns.id, researchRuns.ownerId],
+    }).onDelete("cascade"),
+    uniqueIndex("content_gap_reports_owner_run_domain_unique").on(table.ownerId, table.runId, table.targetDomain),
+    index("content_gap_reports_status_lease_idx")
+      .on(table.status, table.leaseExpiresAt)
+      .where(sql`${table.status} in ('queued', 'running')`),
+    check(
+      "content_gap_reports_domain_normalized_check",
+      sql`${table.targetDomain} = lower(btrim(${table.targetDomain})) and char_length(${table.targetDomain}) > 0`,
+    ),
+    check("content_gap_reports_competitors_array_check", sql`jsonb_typeof(${table.competitors}) = 'array'`),
+    check("content_gap_reports_keywords_array_check", sql`jsonb_typeof(${table.keywords}) = 'array'`),
+    check("content_gap_reports_version_check", sql`${table.version} > 0`),
+    check(
+      "content_gap_reports_lease_state_check",
+      sql`(${table.status} = 'running') = (${table.leaseOwner} is not null and ${table.leaseExpiresAt} is not null)`,
+    ),
+    check(
+      "content_gap_reports_terminal_state_check",
+      sql`((${table.status} in ('completed', 'failed')) = (${table.finishedAt} is not null))`,
+    ),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
@@ -875,3 +1013,7 @@ export type KeywordResult = typeof keywordResults.$inferSelect;
 export type NewKeywordResult = typeof keywordResults.$inferInsert;
 export type AiAnalysis = typeof aiAnalyses.$inferSelect;
 export type NewAiAnalysis = typeof aiAnalyses.$inferInsert;
+export type DomainMetrics = typeof domainMetrics.$inferSelect;
+export type SerpAnalysis = typeof serpAnalyses.$inferSelect;
+export type SerpResult = typeof serpResults.$inferSelect;
+export type ContentGapReport = typeof contentGapReports.$inferSelect;
