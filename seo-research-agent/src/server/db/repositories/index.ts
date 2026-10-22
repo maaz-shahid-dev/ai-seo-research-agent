@@ -6,3 +6,6 @@ export * from "./projects";
 export * from "./provider-markets";
 export * from "./research-runs";
 export * from "./users";
+export * from "./content-gaps";
+export * from "./domain-metrics";
+export * from "./serp-analyses";

@@ -16,11 +16,16 @@ import {
   type ResearchAnalysis,
 } from "@/server/providers/types";
 
+import {
+  DEFAULT_LEASE_DURATION_MS,
+  leaseExpiry,
+  normalizeBoundedText,
+  normalizeWorkerId,
+} from "./leases";
 import type { DatabaseClient } from "../client";
 import { aiAnalyses, aiCitations, jobOutbox, keywordResults, researchRuns } from "../schema";
 
 const ANALYSIS_REQUESTED_EVENT = "analysis.requested";
-const DEFAULT_LEASE_DURATION_MS = 5 * 60_000;
 
 const queueInputSchema = z
   .object({
@@ -166,7 +171,7 @@ export async function claimAiAnalysis(
 ) {
   const workerId = normalizeWorkerId(workerIdInput);
   const now = new Date();
-  const leaseExpiresAt = new Date(now.getTime() + boundedLeaseDuration(leaseDurationMs));
+  const leaseExpiresAt = leaseExpiry(now, leaseDurationMs);
   const [analysis] = await database
     .update(aiAnalyses)
     .set({
@@ -399,16 +404,6 @@ function optionalNonNegativeInteger(value: number | null | undefined, name: stri
   return value;
 }
 
-function normalizeWorkerId(value: string) {
-  return normalizeBoundedText(value, 160, "Analysis worker ID");
-}
-
-function normalizeBoundedText(value: string, maximum: number, label: string) {
-  const normalized = value.trim().replace(/\s+/g, " ");
-  if (normalized.length < 1) throw new TypeError(`${label} is required.`);
-  return [...normalized].slice(0, maximum).join("");
-}
-
 function optionalBoundedText(value: string | null | undefined, maximum: number) {
   if (value === null || value === undefined) return null;
   const normalized = value.trim().replace(/\s+/g, " ");
@@ -422,9 +417,4 @@ function normalizeCitationUrl(value: string | null | undefined) {
     throw new TypeError("Analysis citation URLs must use HTTP or HTTPS.");
   }
   return normalized;
-}
-
-function boundedLeaseDuration(value: number) {
-  if (!Number.isFinite(value)) return DEFAULT_LEASE_DURATION_MS;
-  return Math.min(Math.max(Math.trunc(value), 30_000), 15 * 60_000);
 }

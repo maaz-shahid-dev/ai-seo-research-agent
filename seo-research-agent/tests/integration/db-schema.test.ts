@@ -77,7 +77,7 @@ describe("PostgreSQL schema and tenant repositories", () => {
          from information_schema.tables
         where table_schema = 'public' and table_type = 'BASE TABLE'`,
     );
-    expect(tables.rows).toHaveLength(15);
+    expect(tables.rows).toHaveLength(18);
 
     const indexes = await client.query<{ indexname: string }>(
       `select indexname from pg_indexes where schemaname = 'public'`,
@@ -90,6 +90,10 @@ describe("PostgreSQL schema and tenant repositories", () => {
     expect(names.has("job_outbox_stale_lease_idx")).toBe(true);
     expect(names.has("serp_snapshots_keyword_run_owner_idx")).toBe(true);
     expect(names.has("saved_reports_run_project_owner_idx")).toBe(true);
+    expect(names.has("serp_analyses_owner_keyword_unique")).toBe(true);
+    expect(names.has("serp_analyses_status_lease_idx")).toBe(true);
+    expect(names.has("content_gap_reports_owner_run_domain_unique")).toBe(true);
+    expect(names.has("domain_metrics_expiry_idx")).toBe(true);
   });
 
   test("enforces normalized identities, reset-token safety, and session revocation bounds", async () => {
