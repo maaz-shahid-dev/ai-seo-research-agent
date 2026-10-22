@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 import { isRunInProgress, type ProjectDto, type ResearchRunDto } from "@/features/research/types";
 import { Button, buttonStyles } from "@/components/ui/Button";
-import { formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime, titleCase } from "@/lib/format";
 
 import { ResearchResults } from "./ResearchResults";
 import { useResearchRun } from "./useResearchRun";
@@ -69,8 +69,8 @@ function ResearchHeader({ run }: { run: ResearchRunDto }) {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-wide text-indigo-600">Niche report</p>
-        <h1 id="research-title" className="mt-0.5 truncate text-2xl font-semibold capitalize text-slate-950">
-          {run.query}
+        <h1 id="research-title" className="mt-0.5 truncate text-2xl font-semibold text-slate-950">
+          {titleCase(run.query)}
         </h1>
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
           {run.status === "completed" ? <Chip>{run.keywordCount} keywords</Chip> : null}

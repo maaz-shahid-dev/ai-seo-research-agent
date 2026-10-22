@@ -189,7 +189,7 @@ describe("research dashboard", () => {
     });
     renderDashboard();
 
-    expect(await screen.findByRole("heading", { name: "technical seo" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Technical SEO" })).toBeTruthy();
     expect(await screen.findByRole("button", { name: "technical seo audit" })).toBeTruthy();
   });
 

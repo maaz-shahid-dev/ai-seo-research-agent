@@ -28,6 +28,11 @@ describe("seeded randomness", () => {
 describe("demo DataForSEO client", () => {
   const client = createDemoDataForSeoClient();
 
+  it("never stacks a second leading modifier on a topic that has one", async () => {
+    const ideas = await client.getKeywordIdeas({ keywords: ["best ai tools"], ...market, limit: 100 });
+    expect(ideas.items.filter((item) => /^(best|top|free|cheap) best /.test(item.keyword))).toEqual([]);
+  });
+
   it("returns the same plausible keyword ideas for the same topic", async () => {
     const first = await client.getKeywordIdeas({ keywords: ["Running Shoes"], ...market, limit: 100 });
     const second = await client.getKeywordIdeas({ keywords: ["running shoes"], ...market, limit: 100 });

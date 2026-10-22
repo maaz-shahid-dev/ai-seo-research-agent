@@ -18,6 +18,8 @@ import { hashString, seededRandom, type Random } from "./random";
 
 type Template = { text: (seed: string) => string; intent: SearchIntent; share: [number, number] };
 
+const LEADING_MODIFIERS = ["best", "top", "free", "cheap"];
+
 /** Topic-neutral patterns, so products, software, services and how-to topics all read naturally. */
 const TEMPLATES: Template[] = [
   { text: (s) => `best ${s}`, intent: "commercial", share: [0.2, 0.45] },
@@ -180,9 +182,12 @@ function buildKeywordIdeas(seed: string): NormalizedKeywordIdea[] {
   const base = seedVolume(seed);
   const random = seededRandom(`ideas:${seed}`);
   const seedIdea = keywordMetrics(seed, random.chance(0.6) ? "commercial" : "informational", [1, 1], base);
-  const phrases = [...new Set(TEMPLATES.map((template) => collapseRepeats(template.text(seed))))].filter((phrase) => phrase !== seed);
+  // A topic that already leads with "best", "top", "free" or "cheap" doesn't get a second one.
+  const leads = LEADING_MODIFIERS.some((word) => seed.startsWith(`${word} `));
+  const templates = TEMPLATES.filter((template) => !leads || !LEADING_MODIFIERS.some((word) => template.text("x").startsWith(`${word} `)));
+  const phrases = [...new Set(templates.map((template) => collapseRepeats(template.text(seed))))].filter((phrase) => phrase !== seed);
   return [seedIdea, ...phrases.map((phrase) => {
-    const template = TEMPLATES.find((item) => collapseRepeats(item.text(seed)) === phrase)!;
+    const template = templates.find((item) => collapseRepeats(item.text(seed)) === phrase)!;
     return keywordMetrics(phrase, template.intent, template.share, base);
   })];
 }
