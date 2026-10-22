@@ -27,8 +27,24 @@ import { OverviewStats } from "./OverviewStats";
 import { SerpPanel } from "./SerpPanel";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
-const RESULT_TABS = ["overview", "keywords", "coverage", "clusters", "questions", "plan", "launch", "kgr", "iskills", "content-gap"] as const;
+export const RESULT_TABS = ["overview", "keywords", "coverage", "clusters", "questions", "plan", "launch", "kgr", "iskills", "content-gap"] as const;
 type ResultTab = (typeof RESULT_TABS)[number];
+
+export const RESULT_TAB_LABELS: Record<ResultTab, string> = {
+  overview: "Overview",
+  keywords: "Keywords",
+  coverage: "Coverage",
+  clusters: "Clusters",
+  questions: "Questions",
+  plan: "Content plan",
+  launch: "Launch plan",
+  kgr: "KGR",
+  iskills: "iSkills check",
+  "content-gap": "Content gap",
+};
+
+/** Dispatched by the command palette with a tab id as detail. */
+export const OPEN_RESULT_TAB_EVENT = "research:open-tab";
 const TABS_LABEL = "Result views";
 const BEST_OPPORTUNITY_COUNT = 5;
 
@@ -48,6 +64,11 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
   // Results render only in the browser (after loading), so reading the URL here is safe.
   const [tab, setTab] = useState<ResultTab>(() => pick(readParam("tab"), RESULT_TABS, "overview"));
   useEffect(() => writeParams({ tab: tab === "overview" ? null : tab }), [tab]);
+  useEffect(() => {
+    const open = (event: Event) => setTab(pick(String((event as CustomEvent<unknown>).detail), RESULT_TABS, "overview"));
+    window.addEventListener(OPEN_RESULT_TAB_EVENT, open);
+    return () => window.removeEventListener(OPEN_RESULT_TAB_EVENT, open);
+  }, []);
   const [selected, setSelected] = useState<KeywordDto | null>(null);
   const questions = useMemo(() => keywords.filter((item) => isQuestionKeyword(item.keyword)), [keywords]);
   // The searched topic itself, or its biggest keyword when the provider didn't return it.
@@ -87,16 +108,11 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
         selected={tab}
         onSelect={setTab}
         tabs={[
-          { id: "overview", label: "Overview" },
-          { id: "keywords", label: "Keywords", count: keywords.length },
-          { id: "coverage", label: "Coverage" },
-          { id: "clusters", label: "Clusters" },
-          { id: "questions", label: "Questions", count: questions.length },
-          { id: "plan", label: "Content plan" },
-          { id: "launch", label: "Launch plan" },
-          { id: "kgr", label: "KGR" },
-          { id: "iskills", label: "iSkills check" },
-          { id: "content-gap", label: "Content gap" },
+          ...RESULT_TABS.map((id) => ({
+            id,
+            label: RESULT_TAB_LABELS[id],
+            ...(id === "keywords" ? { count: keywords.length } : id === "questions" ? { count: questions.length } : {}),
+          })),
         ]}
       />
       <div {...tabPanelProps(TABS_LABEL, tab)} className="space-y-3">

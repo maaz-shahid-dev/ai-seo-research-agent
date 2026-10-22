@@ -7,6 +7,7 @@ import { replaceProject } from "@/features/projects/client";
 import { MARKET_LANGUAGE } from "@/features/research/markets";
 import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
 import { AppShell, type AppView } from "@/components/layout/AppShell";
+import type { Command } from "@/lib/commands";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { apiRequest, errorMessage } from "@/lib/api-client";
@@ -16,6 +17,7 @@ import { DailyNichesView } from "./DailyNichesView";
 import { HistoryView } from "./HistoryView";
 import { ProjectsPanel } from "./ProjectsPanel";
 import { RecentSearches } from "./RecentSearches";
+import { OPEN_RESULT_TAB_EVENT, RESULT_TAB_LABELS, RESULT_TABS } from "./ResearchResults";
 import { ResearchView } from "./ResearchView";
 import { SearchBar } from "./SearchBar";
 import { useRecentRuns } from "./useRecentRuns";
@@ -143,6 +145,26 @@ export function DashboardClient({ user, initialProjects, demo = false, initialVi
     void submit(seed, countryCode);
   }
 
+  const commands: Command[] = [
+    ...([["research", "Research"], ["ideas", "Daily niches"], ["history", "History"], ["projects", "Projects"]] as const).map(([id, label]) => ({
+      id: `view-${id}`, label, group: "Go to", run: () => setView(id),
+    })),
+    ...(displayedRun?.status === "completed"
+      ? RESULT_TABS.map((tab) => ({
+        id: `tab-${tab}`,
+        label: `${RESULT_TAB_LABELS[tab]}`,
+        group: "Open tab",
+        keywords: displayedRun.query,
+        run: () => {
+          setView("research");
+          // Let the results mount first when switching from another screen.
+          setTimeout(() => window.dispatchEvent(new CustomEvent(OPEN_RESULT_TAB_EVENT, { detail: tab })), 0);
+        },
+      }))
+      : []),
+    ...recent.runs.map((run) => ({ id: `run-${run.id}`, label: run.query, group: "Recent searches", run: () => openRun(run) })),
+  ];
+
   const sidebar = (
     <div className="space-y-5">
       {activeProjects.length > 1 ? (
@@ -175,6 +197,7 @@ export function DashboardClient({ user, initialProjects, demo = false, initialVi
       demo={demo}
       onSignOut={() => void signOut({ redirectTo: "/sign-in" })}
       sidebar={sidebar}
+      commands={commands}
     >
       {view === "ideas" ? (
         <DailyNichesView onCheck={checkNiche} />

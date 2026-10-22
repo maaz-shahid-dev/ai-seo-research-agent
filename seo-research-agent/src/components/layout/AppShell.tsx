@@ -1,10 +1,14 @@
 "use client";
 
-import { FolderKanban, History, Lightbulb, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Sparkles, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Command as CommandIcon, FolderKanban, History, Lightbulb, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Sparkles, X } from "lucide-react";
+import { useCallback, useState, type ReactNode } from "react";
 
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
+import type { Command } from "@/lib/commands";
+import { toggleTheme } from "@/lib/theme";
+
+import { CommandPalette, useCommandPaletteShortcut } from "./CommandPalette";
 
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -26,6 +30,8 @@ type AppShellProps = {
   onSignOut: () => void;
   /** Extra sidebar content under the navigation (project picker, recent searches). */
   sidebar: ReactNode;
+  /** Screen-specific actions for the Ctrl/Cmd+K palette. */
+  commands?: readonly Command[];
   children: ReactNode;
 };
 
@@ -33,8 +39,18 @@ type AppShellProps = {
  * Sidebar layout on desktop, collapsible to an icon rail (automatic on
  * medium screens); the same sidebar slides in as a drawer on small screens.
  */
-export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, children }: AppShellProps) {
+export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, commands = [], children }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const openPalette = useCallback(() => {
+    setDrawerOpen(false);
+    setPaletteOpen(true);
+  }, []);
+  useCommandPaletteShortcut(openPalette);
+  const allCommands: Command[] = [
+    ...commands,
+    { id: "theme", label: "Switch light / dark theme", group: "Settings", keywords: "dark light mode appearance", run: toggleTheme },
+  ];
   const drawerRef = useDialogFocus<HTMLDivElement>(drawerOpen, () => setDrawerOpen(false));
   const { collapsed, toggle } = useSidebarCollapsed();
 
@@ -43,7 +59,7 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
     setDrawerOpen(false);
   };
 
-  const shared = { view, onNavigate: navigate, user, demo, onSignOut };
+  const shared = { view, onNavigate: navigate, user, demo, onSignOut, onOpenPalette: openPalette };
   const extra = (
     // Selecting a recent search on mobile should also close the drawer.
     <div onClickCapture={(event) => { if ((event.target as HTMLElement).closest("button")) setDrawerOpen(false); }}>
@@ -93,16 +109,19 @@ export function AppShell({ view, onNavigate, user, demo, onSignOut, sidebar, chi
       <main className={`px-4 py-6 transition-[margin] duration-200 sm:px-8 lg:py-8 ${collapsed ? "lg:ml-16" : "lg:ml-64"}`}>
         <div className="mx-auto max-w-6xl space-y-6">{children}</div>
       </main>
+
+      {paletteOpen ? <CommandPalette commands={allCommands} onClose={() => setPaletteOpen(false)} /> : null}
     </div>
   );
 }
 
-function SidebarContent({ view, onNavigate, user, demo, onSignOut, collapsed, onToggleCollapse, onClose, children }: {
+function SidebarContent({ view, onNavigate, user, demo, onSignOut, onOpenPalette, collapsed, onToggleCollapse, onClose, children }: {
   view: AppView;
   onNavigate: (view: AppView) => void;
   user: { name: string };
   demo: boolean;
   onSignOut: () => void;
+  onOpenPalette: () => void;
   /** Icon rail: labels hidden (kept as accessible names), extra content hidden. */
   collapsed: boolean;
   /** Present on the desktop sidebar. */
@@ -140,6 +159,25 @@ function SidebarContent({ view, onNavigate, user, demo, onSignOut, collapsed, on
           </div>
         </div>
       )}
+
+      <div className={`mb-2 ${collapsed ? "px-2" : "px-3"}`}>
+        <button
+          type="button"
+          onClick={onOpenPalette}
+          aria-label="Quick actions"
+          aria-keyshortcuts="Control+K Meta+K"
+          title="Quick actions (Ctrl+K)"
+          className={`flex w-full items-center gap-2 rounded-lg border border-slate-200 py-1.5 text-sm text-slate-500 hover:border-slate-300 hover:text-slate-900 ${collapsed ? "justify-center px-0" : "px-3"}`}
+        >
+          <CommandIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {collapsed ? null : (
+            <>
+              <span className="flex-1 text-left">Quick actions</span>
+              <kbd className="rounded border border-slate-200 px-1.5 text-[10px] font-medium text-slate-400">Ctrl K</kbd>
+            </>
+          )}
+        </button>
+      </div>
 
       <nav aria-label="Main" className={`space-y-1 ${collapsed ? "px-2" : "px-3"}`}>
         {NAV_ITEMS.map(({ view: item, label, icon: Icon }) => {
