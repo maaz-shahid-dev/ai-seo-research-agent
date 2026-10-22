@@ -55,6 +55,39 @@ npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
 
 Open [http://localhost:3000](http://localhost:3000), create an account, and run a search. The application deliberately fails closed if a service is misconfigured: sign-up and sign-in need the database and Upstash, and searches return "Keyword research isn't available yet" until Inngest and DataForSEO are configured.
 
+## Run locally with Docker (no cloud accounts)
+
+`docker-compose.yml` starts PostgreSQL behind Neon's local HTTP/WebSocket proxy (so the app uses its production database driver) and the Inngest dev server. Rate limiting uses an in-process limiter, which is allowed only outside production.
+
+```powershell
+docker compose up -d
+```
+
+Create `.env.local` with:
+
+```dotenv
+DATABASE_URL=postgres://postgres:postgres@db.localtest.me:5432/main
+MIGRATION_DATABASE_URL=postgres://postgres:postgres@db.localtest.me:5432/main
+AUTH_SECRET=<output of: npx auth secret>
+AUTH_TRUST_HOST=true
+RATE_LIMIT_BACKEND=memory
+INNGEST_DEV=1
+DATAFORSEO_LOGIN=<your login>
+DATAFORSEO_PASSWORD=<your password>
+OPENAI_API_KEY=<your key>
+OPENAI_MODEL=<model name>
+```
+
+Then apply migrations and start the app:
+
+```powershell
+Get-Content .env.local | ForEach-Object { if ($_ -match '^([A-Z_]+)=(.*)$') { Set-Item "env:$($Matches[1])" $Matches[2] } }
+npm run db:migrate
+npm run dev
+```
+
+Open http://localhost:3000. The Inngest dashboard at http://localhost:8288 shows background jobs. `db.localtest.me` is a public DNS name for 127.0.0.1. The local proxy settings apply only when `DATABASE_URL` uses that host and never in production. Without DataForSEO credentials, everything works except searches, which show "Keyword research isn't available yet".
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -72,6 +105,8 @@ Open [http://localhost:3000](http://localhost:3000), create an account, and run 
 | `OPENAI_API_KEY` | Server-side OpenAI key used by the structured analysis adapter. |
 | `OPENAI_MODEL` | OpenAI model name for structured analysis. |
 | `LOG_LEVEL` | Optional Pino level; defaults to `info`. |
+| `RATE_LIMIT_BACKEND` | Local only: `memory` replaces Upstash with an in-process limiter. Ignored in production. |
+| `INNGEST_DEV` | Local only: `1` sends jobs to the Inngest dev server and removes the need for Inngest keys. Never set it in production. |
 
 The production readiness check requires the runtime database, authentication, Upstash, Inngest, DataForSEO, and OpenAI values in the table. `MIGRATION_DATABASE_URL` is required only by the release migration command; it is deliberately excluded from runtime readiness. `AUTH_TRUST_HOST` and `LOG_LEVEL` are optional. `.env*` files are ignored by Git except for the placeholder-only `.env.example` template.
 

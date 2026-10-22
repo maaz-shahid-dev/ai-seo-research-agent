@@ -8,6 +8,7 @@ import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { migrate } from "drizzle-orm/neon-serverless/migrator";
 
+import { configureLocalNeonProxy } from "../src/server/db/local-neon";
 import { planMigration } from "./migration-policy";
 
 async function main() {
@@ -24,6 +25,7 @@ async function main() {
 
   // Node 22 provides a global WebSocket, which the pooled driver needs for transactions.
   neonConfig.webSocketConstructor = WebSocket;
+  configureLocalNeonProxy(neonConfig, plan.url);
   const pool = new Pool({ connectionString: plan.url });
   try {
     await migrate(drizzle({ client: pool }), { migrationsFolder: "./drizzle" });

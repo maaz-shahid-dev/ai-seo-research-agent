@@ -2,25 +2,25 @@ import "server-only";
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { usesInMemoryRateLimit } from "@/server/config/environment-schema";
 import { getUpstashEnvironment } from "@/server/config/environment";
 import { AppError } from "@/server/http/errors";
 
+import { createMemoryRateLimiter, type RateLimiter } from "./memory-rate-limiter";
+
 type LimitKind = "sign-in-ip" | "sign-in-account" | "registration" | "research" | "analysis";
 
-type LimitDefinition = {
-  requests: number;
-  window: Parameters<typeof Ratelimit.slidingWindow>[1];
-};
+type LimitDefinition = { requests: number; windowSeconds: number };
 
 const definitions: Record<LimitKind, LimitDefinition> = {
-  "sign-in-ip": { requests: 20, window: "10 m" },
-  "sign-in-account": { requests: 10, window: "10 m" },
-  registration: { requests: 5, window: "1 h" },
-  research: { requests: 20, window: "1 h" },
-  analysis: { requests: 10, window: "1 h" },
+  "sign-in-ip": { requests: 20, windowSeconds: 10 * 60 },
+  "sign-in-account": { requests: 10, windowSeconds: 10 * 60 },
+  registration: { requests: 5, windowSeconds: 60 * 60 },
+  research: { requests: 20, windowSeconds: 60 * 60 },
+  analysis: { requests: 10, windowSeconds: 60 * 60 },
 };
 
-let rateLimiters: Partial<Record<LimitKind, Ratelimit>> = {};
+let rateLimiters: Partial<Record<LimitKind, RateLimiter>> = {};
 
 export async function enforceRateLimit(kind: LimitKind, identifier: string) {
   const normalizedIdentifier = identifier.trim().slice(0, 256) || "unknown";
@@ -48,21 +48,27 @@ function getRateLimiter(kind: LimitKind) {
   const existing = rateLimiters[kind];
   if (existing) return existing;
 
-  const environment = getUpstashEnvironment();
   const definition = definitions[kind];
-  const limiter = new Ratelimit({
+  const limiter = usesInMemoryRateLimit(process.env)
+    ? createMemoryRateLimiter(definition.requests, definition.windowSeconds * 1000)
+    : createUpstashRateLimiter(kind, definition);
+
+  rateLimiters = { ...rateLimiters, [kind]: limiter };
+  return limiter;
+}
+
+function createUpstashRateLimiter(kind: LimitKind, definition: LimitDefinition): RateLimiter {
+  const environment = getUpstashEnvironment();
+  return new Ratelimit({
     redis: new Redis({
       url: environment.UPSTASH_REDIS_REST_URL,
       token: environment.UPSTASH_REDIS_REST_TOKEN,
     }),
-    limiter: Ratelimit.slidingWindow(definition.requests, definition.window),
+    limiter: Ratelimit.slidingWindow(definition.requests, `${definition.windowSeconds} s`),
     prefix: `seo-research-agent:${kind}`,
     analytics: true,
     timeout: 1_500,
   });
-
-  rateLimiters = { ...rateLimiters, [kind]: limiter };
-  return limiter;
 }
 
 export function resetRateLimitersForTests() {

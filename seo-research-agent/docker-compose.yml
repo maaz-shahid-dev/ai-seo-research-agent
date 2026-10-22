@@ -1,0 +1,41 @@
+# Local development services only; production uses Neon, Upstash and Inngest Cloud.
+# Start with `docker compose up -d`, then follow "Run locally with Docker" in README.md.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: main
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d main"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # Speaks Neon's HTTP and WebSocket protocols so the app uses its production driver.
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    environment:
+      PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/main
+    ports:
+      - "4444:4444"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Inngest dev server: runs background jobs and has a dashboard at http://localhost:8288.
+  inngest:
+    image: inngest/inngest:latest
+    command: inngest dev -u http://host.docker.internal:3000/api/inngest
+    ports:
+      - "8288:8288"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres-data:

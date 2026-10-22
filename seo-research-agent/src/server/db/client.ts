@@ -1,10 +1,11 @@
 import "server-only";
 
-import { neon } from "@neondatabase/serverless";
+import { neon, neonConfig } from "@neondatabase/serverless";
 import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
 
 import { runtimeEnvironmentSchema } from "@/server/config/environment-schema";
 
+import { configureLocalNeonProxy } from "./local-neon";
 import * as schema from "./schema";
 
 export type DatabaseClient = NeonHttpDatabase<typeof schema>;
@@ -18,6 +19,7 @@ export function getDatabase(): DatabaseClient {
   }
 
   const { DATABASE_URL } = runtimeEnvironmentSchema.pick({ DATABASE_URL: true }).parse(process.env);
+  configureLocalNeonProxy(neonConfig, DATABASE_URL);
   const queryClient = neon(DATABASE_URL);
   database = drizzle(queryClient, { schema, casing: "snake_case" });
 

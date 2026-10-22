@@ -4,8 +4,10 @@ const logLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"]
 
 const nonEmptySecret = z.string().trim().min(1);
 
+const nodeEnvironmentSchema = z.enum(["development", "test", "production"]).default("development");
+
 export const runtimeEnvironmentSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: nodeEnvironmentSchema,
   DATABASE_URL: z.string().trim().url().refine(isPostgresUrl, "Must be a PostgreSQL URL"),
   AUTH_SECRET: z.string().min(32, "Must contain at least 32 characters"),
   LOG_LEVEL: z.enum(logLevels).default("info"),
@@ -23,6 +25,14 @@ export const upstashEnvironmentSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().trim().url().startsWith("https://"),
   UPSTASH_REDIS_REST_TOKEN: nonEmptySecret,
 });
+
+/**
+ * Local development may opt into a per-process rate limiter instead of Upstash.
+ * Production always uses Upstash, because limits must be shared across instances.
+ */
+export function usesInMemoryRateLimit(source: Record<string, string | undefined>) {
+  return source.NODE_ENV !== "production" && source.RATE_LIMIT_BACKEND === "memory";
+}
 
 export const inngestEnvironmentSchema = z.object({
   INNGEST_EVENT_KEY: nonEmptySecret,
@@ -52,13 +62,18 @@ export const runtimeReadinessKeys = [
   "OPENAI_MODEL",
 ] as const;
 
-/** Services a research run needs before it can be queued and processed. */
-export const researchServiceKeys = [
-  "INNGEST_EVENT_KEY",
-  "INNGEST_SIGNING_KEY",
-  "DATAFORSEO_LOGIN",
-  "DATAFORSEO_PASSWORD",
-] as const;
+/**
+ * Lists settings a research run still needs before it can be queued and
+ * processed. Inngest keys are unnecessary when the local dev server is used.
+ */
+export function listMissingResearchKeys(source: Record<string, string | undefined>) {
+  const usesLocalInngest = source.NODE_ENV !== "production" && Boolean(source.INNGEST_DEV?.trim());
+  return listMissingEnvironmentKeys(source, [
+    ...(usesLocalInngest ? [] : ["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"]),
+    "DATAFORSEO_LOGIN",
+    "DATAFORSEO_PASSWORD",
+  ]);
+}
 
 export const productionEnvironmentKeys = [
   ...runtimeReadinessKeys,

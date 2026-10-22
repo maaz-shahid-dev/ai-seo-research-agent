@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   listMissingEnvironmentKeys,
+  listMissingResearchKeys,
+  usesInMemoryRateLimit,
   productionEnvironmentKeys,
   runtimeReadinessKeys,
   runtimeEnvironmentSchema,
@@ -57,5 +59,26 @@ describe("research service configuration", () => {
 
     vi.stubEnv("DATAFORSEO_PASSWORD", " ");
     expect(isResearchConfigured()).toBe(false);
+  });
+});
+
+describe("local development services", () => {
+  const research = { DATAFORSEO_LOGIN: "login", DATAFORSEO_PASSWORD: "password" };
+
+  it("needs Inngest keys unless the local Inngest dev server is used outside production", () => {
+    expect(listMissingResearchKeys({ ...research, NODE_ENV: "development" }))
+      .toEqual(["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"]);
+    expect(listMissingResearchKeys({ ...research, NODE_ENV: "development", INNGEST_DEV: "1" }))
+      .toEqual([]);
+    expect(listMissingResearchKeys({ ...research, NODE_ENV: "production", INNGEST_DEV: "1" }))
+      .toEqual(["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"]);
+    expect(listMissingResearchKeys({ NODE_ENV: "development", INNGEST_DEV: "1" }))
+      .toEqual(["DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD"]);
+  });
+
+  it("uses the in-memory rate limiter only when requested outside production", () => {
+    expect(usesInMemoryRateLimit({ NODE_ENV: "development", RATE_LIMIT_BACKEND: "memory" })).toBe(true);
+    expect(usesInMemoryRateLimit({ NODE_ENV: "development" })).toBe(false);
+    expect(usesInMemoryRateLimit({ NODE_ENV: "production", RATE_LIMIT_BACKEND: "memory" })).toBe(false);
   });
 });
