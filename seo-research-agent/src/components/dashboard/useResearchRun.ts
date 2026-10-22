@@ -1,113 +1,62 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
-  isAnalysisInProgress,
+  isJobInProgress,
   isRunInProgress,
-  type AiAnalysisDto,
   type KeywordDto,
   type ResearchDetailResponse,
   type ResearchRunDto,
 } from "@/features/research/types";
-import { ApiError, apiRequest, errorMessage, isAbortError } from "@/lib/api-client";
+import { usePolling } from "@/hooks/usePolling";
+import { apiRequest, errorMessage } from "@/lib/api-client";
 
 const QUEUED_POLL_MS = 1_500;
 const ACTIVE_POLL_MS = 2_500;
-const MAX_RETRY_MS = 30_000;
 
-type RunState = {
-  run: ResearchRunDto;
-  analysis: AiAnalysisDto | null;
-  keywords: KeywordDto[];
-  nextCursor: number | null;
-  /** True once the first page of a completed run is loaded; later polls keep it. */
-  keywordsLoaded: boolean;
-  error: string | null;
-};
+/** Polls until both the keyword job and the AI analysis have settled. */
+function nextDelay({ run, analysis }: ResearchDetailResponse) {
+  if (isRunInProgress(run)) return run.status === "queued" ? QUEUED_POLL_MS : ACTIVE_POLL_MS;
+  return run.status === "completed" && isJobInProgress(analysis) ? ACTIVE_POLL_MS : null;
+}
 
-/**
- * Loads one research run and keeps it fresh until both the keyword job and the
- * AI analysis settle. Temporary failures retry with exponential backoff; other
- * failures stop polling and surface the server's message.
- */
+/** Loads one research run, keeps it fresh, and pages through its keywords. */
 export function useResearchRun(initialRun: ResearchRunDto) {
   const runId = initialRun.id;
-  const [state, setState] = useState<RunState>({
-    run: initialRun,
-    analysis: null,
-    keywords: [],
-    nextCursor: null,
-    keywordsLoaded: false,
-    error: null,
-  });
+  const { data, error } = usePolling(
+    runId,
+    (signal) => apiRequest<ResearchDetailResponse>(`/api/research/${runId}`, { signal }),
+    nextDelay,
+  );
+  // Pages after the first; the first page is fixed once the run completes.
+  const [extra, setExtra] = useState<{ keywords: KeywordDto[]; nextCursor?: number | null }>({ keywords: [] });
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let failures = 0;
-
-    async function refresh() {
-      try {
-        const detail = await apiRequest<ResearchDetailResponse>(`/api/research/${runId}`, {
-          signal: controller.signal,
-        });
-        failures = 0;
-        setState((current) => ({
-          run: detail.run,
-          analysis: detail.analysis,
-          keywords: current.keywordsLoaded ? current.keywords : detail.keywords,
-          nextCursor: current.keywordsLoaded ? current.nextCursor : detail.nextCursor,
-          keywordsLoaded: current.keywordsLoaded || detail.run.status === "completed",
-          error: null,
-        }));
-
-        if (isRunInProgress(detail.run)) {
-          timer = setTimeout(refresh, detail.run.status === "queued" ? QUEUED_POLL_MS : ACTIVE_POLL_MS);
-        } else if (detail.run.status === "completed" && isAnalysisInProgress(detail.analysis)) {
-          timer = setTimeout(refresh, ACTIVE_POLL_MS);
-        }
-      } catch (error) {
-        if (controller.signal.aborted || isAbortError(error)) return;
-        const retryable = error instanceof ApiError && error.retryable;
-        setState((current) => ({
-          ...current,
-          error: retryable ? "Connection problem. Retrying…" : errorMessage(error),
-        }));
-        if (retryable) {
-          failures += 1;
-          timer = setTimeout(refresh, Math.min(ACTIVE_POLL_MS * 2 ** failures, MAX_RETRY_MS));
-        }
-      }
-    }
-
-    void refresh();
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [runId]);
+  const nextCursor = extra.nextCursor !== undefined ? extra.nextCursor : data?.nextCursor ?? null;
 
   const loadMore = useCallback(async () => {
-    if (state.nextCursor === null || loadingMore) return;
+    if (nextCursor === null || loadingMore) return;
     setLoadingMore(true);
+    setLoadError(null);
     try {
-      const page = await apiRequest<ResearchDetailResponse>(
-        `/api/research/${runId}?after=${state.nextCursor}`,
-      );
-      setState((current) => ({
-        ...current,
-        keywords: [...current.keywords, ...page.keywords],
-        nextCursor: page.nextCursor,
-        error: null,
-      }));
-    } catch (error) {
-      setState((current) => ({ ...current, error: errorMessage(error) }));
+      const page = await apiRequest<ResearchDetailResponse>(`/api/research/${runId}?after=${nextCursor}`);
+      setExtra((current) => ({ keywords: [...current.keywords, ...page.keywords], nextCursor: page.nextCursor }));
+    } catch (caught) {
+      setLoadError(errorMessage(caught));
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, runId, state.nextCursor]);
+  }, [loadingMore, nextCursor, runId]);
 
-  return { ...state, loadingMore, loadMore };
+  return {
+    run: data?.run ?? initialRun,
+    analysis: data?.analysis ?? null,
+    keywords: [...(data?.keywords ?? []), ...extra.keywords],
+    nextCursor,
+    error: error ?? loadError,
+    loadingMore,
+    loadMore,
+  };
 }
