@@ -9,11 +9,18 @@ import { getDatabase } from "@/server/db/client";
 import { logger } from "@/server/logging/logger";
 
 import { inngest } from "./client";
-import { ANALYSIS_REQUESTED_EVENT, RESEARCH_REQUESTED_EVENT } from "./events";
+import {
+  ANALYSIS_REQUESTED_EVENT,
+  CONTENT_GAP_REQUESTED_EVENT,
+  RESEARCH_REQUESTED_EVENT,
+  SERP_REQUESTED_EVENT,
+} from "./events";
 
 type DispatchableEvent =
   | typeof RESEARCH_REQUESTED_EVENT
-  | typeof ANALYSIS_REQUESTED_EVENT;
+  | typeof ANALYSIS_REQUESTED_EVENT
+  | typeof SERP_REQUESTED_EVENT
+  | typeof CONTENT_GAP_REQUESTED_EVENT;
 
 /** Best-effort fast path; the scheduled outbox dispatcher remains the recovery path. */
 export async function dispatchResearchRunNow(ownerId: string, runId: string) {

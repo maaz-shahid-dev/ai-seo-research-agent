@@ -131,3 +131,21 @@ function normalizeKeyword(keyword: string) {
 function boundedLimit(value: number | undefined, fallback: number, maximum: number) {
   return Number.isSafeInteger(value) ? Math.min(Math.max(value!, 1), maximum) : fallback;
 }
+
+export async function getKeywordResult(
+  database: DatabaseClient,
+  ownerId: string,
+  runId: string,
+  keywordResultId: number,
+) {
+  const [keyword] = await database
+    .select()
+    .from(keywordResults)
+    .where(and(
+      eq(keywordResults.id, keywordResultId),
+      eq(keywordResults.ownerId, ownerId),
+      eq(keywordResults.runId, runId),
+    ))
+    .limit(1);
+  return keyword ?? null;
+}

@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
     insertKeywordResults: vi.fn(),
     listKeywordResults: vi.fn(),
     queueAiAnalysis: vi.fn(),
+    requestTopSerpAnalyses: vi.fn(),
     updateResearchRunProgress: vi.fn(),
     getKeywordIdeas: vi.fn(),
     getOpenAiEnvironment: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock("@/server/db/repositories", () => ({
   insertKeywordResults: mocks.insertKeywordResults,
   listKeywordResults: mocks.listKeywordResults,
   queueAiAnalysis: mocks.queueAiAnalysis,
+  requestTopSerpAnalyses: mocks.requestTopSerpAnalyses,
   updateResearchRunProgress: mocks.updateResearchRunProgress,
 }));
 vi.mock("@/server/config/environment", () => ({
@@ -68,6 +70,7 @@ import { processResearch } from "@/server/jobs/research";
 const OWNER_ID = "10000000-0000-4000-8000-000000000001";
 const RUN_ID = "30000000-0000-4000-8000-000000000001";
 const ANALYSIS_ID = "40000000-0000-4000-8000-000000000001";
+const SERP_ANALYSIS_ID = "50000000-0000-4000-8000-000000000001";
 
 type Handler = (input: {
   event: { id: string; data: unknown };
@@ -79,6 +82,7 @@ const handler = (processResearch as unknown as { fn: Handler }).fn;
 describe("research worker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.requestTopSerpAnalyses.mockResolvedValue([{ id: SERP_ANALYSIS_ID }]);
     mocks.claimResearchRun.mockResolvedValue({
       version: 2,
       query: "technical seo",
@@ -159,6 +163,11 @@ describe("research worker", () => {
     );
     expect(mocks.queueAiAnalysis.mock.invocationCallOrder[0])
       .toBeLessThan(mocks.finishResearchRun.mock.invocationCallOrder[0]!);
+    // Niche Hunter: the top opportunities are analyzed automatically after completion.
+    expect(mocks.requestTopSerpAnalyses).toHaveBeenCalledWith(mocks.database, OWNER_ID, RUN_ID, 10);
+    expect(mocks.dispatchOutboxEventNow).toHaveBeenCalledWith(OWNER_ID, SERP_ANALYSIS_ID, "serp.requested");
+    expect(mocks.finishResearchRun.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.requestTopSerpAnalyses.mock.invocationCallOrder[0]!);
   });
 
   it("completes an empty result without spending AI quota", async () => {
@@ -171,6 +180,7 @@ describe("research worker", () => {
     expect(result).toMatchObject({ status: "completed", keywordCount: 0, analysisId: null });
     expect(mocks.getOpenAiEnvironment).not.toHaveBeenCalled();
     expect(mocks.queueAiAnalysis).not.toHaveBeenCalled();
+    expect(mocks.requestTopSerpAnalyses).not.toHaveBeenCalled();
   });
 
   it("fails a claimed run with a safe message when the market is unsupported", async () => {

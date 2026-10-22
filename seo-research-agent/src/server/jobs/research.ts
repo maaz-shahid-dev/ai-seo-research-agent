@@ -18,20 +18,25 @@ import {
   insertKeywordResults,
   listKeywordResults,
   queueAiAnalysis,
+  requestTopSerpAnalyses,
   updateResearchRunProgress,
 } from "@/server/db/repositories";
 import { getOpenAiEnvironment } from "@/server/config/environment";
 import { getDatabase } from "@/server/db/client";
 import { logger } from "@/server/logging/logger";
-import { createDataForSeoClient, ProviderError } from "@/server/providers";
+import { createDataForSeoClient } from "@/server/providers";
 
 import { inngest } from "./client";
 import { dispatchOutboxEventNow } from "./dispatch";
+import { withProviderErrors } from "./provider-errors";
 import {
   ANALYSIS_REQUESTED_EVENT,
   RESEARCH_REQUESTED_EVENT,
   researchRequestedEventSchema,
+  SERP_REQUESTED_EVENT,
 } from "./events";
+
+const AUTO_SERP_KEYWORDS = 10;
 
 export const processResearch = inngest.createFunction(
   {
@@ -116,21 +121,13 @@ export const processResearch = inngest.createFunction(
         : { status: "cancelled-or-stale" };
     }
 
-    const keywordResult = await step.run("fetch-keyword-ideas", async () => {
-      try {
-        return await createDataForSeoClient().getKeywordIdeas({
-          keywords: [claimed.query],
-          locationCode: market.locationCode,
-          languageCode: market.languageCode,
-          limit: claimed.keywordLimit,
-        });
-      } catch (error) {
-        if (error instanceof ProviderError && !error.retryable) {
-          throw new NonRetriableError(`${error.code}: ${error.message}`, { cause: error });
-        }
-        throw error;
-      }
-    });
+    const keywordResult = await step.run("fetch-keyword-ideas", () =>
+      withProviderErrors(() => createDataForSeoClient().getKeywordIdeas({
+        keywords: [claimed.query],
+        locationCode: market.locationCode,
+        languageCode: market.languageCode,
+        limit: claimed.keywordLimit,
+      })));
 
     const fetched = await step.run("record-fetch-progress", () =>
       updateResearchRunProgress(
@@ -233,6 +230,16 @@ export const processResearch = inngest.createFunction(
       await step.run("dispatch-analysis", () =>
         dispatchOutboxEventNow(ownerId, queuedAnalysis.id, ANALYSIS_REQUESTED_EVENT),
       );
+    }
+
+    // Niche Hunter: analyze the best opportunities automatically; others load on click.
+    if (analysisInput.keywordCount > 0) {
+      await step.run("queue-top-serps", async () => {
+        const analyses = await requestTopSerpAnalyses(getDatabase(), ownerId, runId, AUTO_SERP_KEYWORDS);
+        await Promise.all(analyses.map((analysis) =>
+          dispatchOutboxEventNow(ownerId, analysis.id, SERP_REQUESTED_EVENT)));
+        return analyses.length;
+      });
     }
 
     return {
