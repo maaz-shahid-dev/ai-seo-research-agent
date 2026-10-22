@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useState, type FormEvent } from "react";
@@ -69,7 +70,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-sm">
-        <p className="text-center text-sm font-semibold text-slate-900">SEO Research</p>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-sm">
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p className="text-sm font-semibold text-slate-900">SEO Research</p>
+          <p className="text-xs text-slate-500">Find niches you can actually rank for</p>
+        </div>
         <section className="mt-4 rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <h1 className="text-xl font-semibold text-slate-950">
             {isRegistration ? "Create your account" : "Sign in"}

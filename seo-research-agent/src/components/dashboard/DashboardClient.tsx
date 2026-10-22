@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 
 import { replaceProject } from "@/features/projects/client";
 import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
+import { AppShell, type AppView } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
@@ -15,15 +16,15 @@ import { ResearchView } from "./ResearchView";
 import { SearchBar } from "./SearchBar";
 import { useRecentRuns } from "./useRecentRuns";
 
-type View = "research" | "ideas" | "projects";
-
 type DashboardClientProps = {
   user: { name: string };
   initialProjects: ProjectDto[];
+  /** True when the server runs on built-in demo data instead of live providers. */
+  demo?: boolean;
 };
 
-export function DashboardClient({ user, initialProjects }: DashboardClientProps) {
-  const [view, setView] = useState<View>("research");
+export function DashboardClient({ user, initialProjects, demo = false }: DashboardClientProps) {
+  const [view, setView] = useState<AppView>("research");
   const [projects, setProjects] = useState(initialProjects);
   // Pin the starting project so creating a new one doesn't silently switch searches to it.
   const [chosenProjectId, setChosenProjectId] = useState<string | null>(
@@ -95,93 +96,85 @@ export function DashboardClient({ user, initialProjects }: DashboardClientProps)
     void submit(seed);
   }
 
-  return (
-    <div className="min-h-dvh bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-1 sm:gap-4">
-            <span className="mr-2 font-semibold tracking-tight">SEO Research</span>
-            <nav aria-label="Main" className="flex gap-1">
-              <NavTab active={view === "research"} onClick={() => setView("research")}>Research</NavTab>
-              <NavTab active={view === "ideas"} onClick={() => setView("ideas")}>Daily niches</NavTab>
-              <NavTab active={view === "projects"} onClick={() => setView("projects")}>Projects</NavTab>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-slate-500 sm:inline">{user.name}</span>
-            <Button variant="ghost" size="sm" onClick={() => void signOut({ redirectTo: "/sign-in" })}>
-              Sign out
-            </Button>
-          </div>
+  const sidebar = (
+    <div className="space-y-5">
+      {activeProjects.length > 1 ? (
+        <div className="px-3">
+          <label htmlFor="project" className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Project</label>
+          <select
+            id="project"
+            value={project?.id ?? ""}
+            onChange={(event) => openProject(event.target.value)}
+            className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          >
+            {activeProjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6">
-        {view === "ideas" ? (
-          <DailyNichesView onCheck={checkNiche} />
-        ) : view === "projects" ? (
-          <ProjectsPanel
-            projects={projects}
-            activeProjectId={project?.id ?? null}
-            onProjectsChange={setProjects}
-            onOpen={openProject}
-          />
-        ) : !project ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h1 className="font-semibold">No active projects</h1>
-            <Button className="mt-4" onClick={() => setView("projects")}>Manage projects</Button>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-3">
-              <SearchBar
-                query={query}
-                onQueryChange={(value) => {
-                  setQuery(value);
-                  idempotencyKey.current = null;
-                }}
-                onSubmit={() => void submit()}
-                pending={submitting}
-                projects={activeProjects}
-                projectId={project.id}
-                onProjectChange={openProject}
-              />
-              {submitError ? <p className="text-sm text-rose-700" role="alert">{submitError}</p> : null}
-              <RecentSearches runs={recent.runs} selectedId={displayedRun?.id ?? null} onSelect={setSelectedRun} />
-            </div>
-
-            {displayedRun ? (
-              <ResearchView
-                key={displayedRun.id}
-                initialRun={displayedRun}
-                project={project}
-                onProjectUpdate={updateProjectInList}
-                onRunChange={recent.upsert}
-                onRetry={retry}
-              />
-            ) : recent.loading ? null : (
-              <p className="py-16 text-center text-sm text-slate-500">
-                {recent.error ?? "Search a topic to see keyword ideas, search volume and difficulty."}
-              </p>
-            )}
-          </>
-        )}
-      </main>
+      ) : null}
+      <RecentSearches
+        runs={recent.runs}
+        selectedId={displayedRun?.id ?? null}
+        onSelect={(run) => {
+          setSelectedRun(run);
+          setView("research");
+        }}
+      />
     </div>
   );
-}
 
-function NavTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      aria-current={active ? "page" : undefined}
-      onClick={onClick}
-      className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-        active ? "bg-slate-100 text-slate-950" : "text-slate-500 hover:text-slate-900"
-      }`}
+    <AppShell
+      view={view}
+      onNavigate={setView}
+      user={user}
+      demo={demo}
+      onSignOut={() => void signOut({ redirectTo: "/sign-in" })}
+      sidebar={sidebar}
     >
-      {children}
-    </button>
+      {view === "ideas" ? (
+        <DailyNichesView onCheck={checkNiche} />
+      ) : view === "projects" ? (
+        <ProjectsPanel
+          projects={projects}
+          activeProjectId={project?.id ?? null}
+          onProjectsChange={setProjects}
+          onOpen={openProject}
+        />
+      ) : !project ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          <h1 className="font-semibold">No active projects</h1>
+          <Button className="mt-4" onClick={() => setView("projects")}>Manage projects</Button>
+        </div>
+      ) : (
+        <>
+          <SearchBar
+            query={query}
+            onQueryChange={(value) => {
+              setQuery(value);
+              idempotencyKey.current = null;
+            }}
+            onSubmit={(example) => (example ? retry(example) : void submit())}
+            pending={submitting}
+            error={submitError}
+            showExamples={!recent.loading && recent.runs.length === 0}
+          />
+
+          {displayedRun ? (
+            <ResearchView
+              key={displayedRun.id}
+              initialRun={displayedRun}
+              project={project}
+              onProjectUpdate={updateProjectInList}
+              onRunChange={recent.upsert}
+              onRetry={retry}
+            />
+          ) : recent.loading ? null : (
+            <p className="py-12 text-center text-sm text-slate-500">
+              {recent.error ?? "Your results will appear here: verdict, keywords, content plan and the iSkills check."}
+            </p>
+          )}
+        </>
+      )}
+    </AppShell>
   );
 }

@@ -63,15 +63,17 @@ export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange
 
 function ResearchHeader({ run }: { run: ResearchRunDto }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0">
-        <h1 id="research-title" className="truncate text-xl font-semibold text-slate-950">
+        <p className="text-xs font-medium uppercase tracking-wide text-indigo-600">Niche report</p>
+        <h1 id="research-title" className="mt-0.5 truncate text-2xl font-semibold capitalize text-slate-950">
           {run.query}
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          {run.status === "completed" ? `${run.keywordCount} keywords · ` : ""}
-          {formatRelativeTime(run.createdAt)}
-        </p>
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+          {run.status === "completed" ? <Chip>{run.keywordCount} keywords</Chip> : null}
+          <Chip>{run.countryCode} · {run.languageCode}</Chip>
+          <Chip>{formatRelativeTime(run.createdAt)}</Chip>
+        </div>
       </div>
       {run.status === "completed" && run.keywordCount > 0 ? (
         <a href={`/api/research/${run.id}/export`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
@@ -101,4 +103,8 @@ function ResearchProgress({ run }: { run: ResearchRunDto }) {
       />
     </div>
   );
+}
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5">{children}</span>;
 }

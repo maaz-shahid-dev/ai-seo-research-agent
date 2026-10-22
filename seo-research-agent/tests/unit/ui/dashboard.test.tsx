@@ -139,7 +139,9 @@ describe("research dashboard", () => {
     mockApi({ [HISTORY]: json({ runs: [] }) });
     renderDashboard();
 
-    expect(await screen.findByText(/Search a topic to see keyword ideas/)).toBeTruthy();
+    expect(await screen.findByText(/Your results will appear here/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "bearded dragon tank setup" })).toBeTruthy();
+    expect(within(screen.getByRole("navigation", { name: "Recent searches" })).getByText("No searches yet.")).toBeTruthy();
     expect(screen.queryByLabelText("Project")).toBeNull();
   });
 
@@ -209,10 +211,10 @@ describe("research dashboard", () => {
     const user = renderDashboard();
 
     const recent = await screen.findByRole("navigation", { name: "Recent searches" });
-    await user.click(within(recent).getByRole("button", { name: "seo audit tool" }));
+    await user.click(within(recent).getByRole("button", { name: /^seo audit tool/ }));
 
     expect(await screen.findByText("best seo audit tool")).toBeTruthy();
-    expect(within(recent).getByRole("button", { name: "seo audit tool" }).getAttribute("aria-current"))
+    expect(within(recent).getByRole("button", { name: /^seo audit tool/ }).getAttribute("aria-current"))
       .toBe("true");
   });
 
@@ -339,8 +341,9 @@ describe("research dashboard", () => {
 
     expect(await screen.findByText("Project created.")).toBeTruthy();
     // The original project stays current; the new one is offered with "Open".
-    expect(screen.getByText("Current").closest("li")?.textContent).toContain("Acme");
-    expect(screen.getByText("New site").closest("li")?.textContent).toContain("Open");
+    const projectList = within(screen.getByRole("main"));
+    expect(projectList.getByText("Current").closest("li")?.textContent).toContain("Acme");
+    expect(projectList.getByText("New site").closest("li")?.textContent).toContain("Open");
     await user.click(screen.getByRole("button", { name: "Research" }));
     expect((screen.getByLabelText("Project") as HTMLSelectElement).value).toBe(project.id);
 

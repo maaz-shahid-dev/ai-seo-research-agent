@@ -5,6 +5,7 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { WorkspaceSkeleton } from "@/components/dashboard/WorkspaceSkeleton";
 import { toProjectDto } from "@/features/projects/dto";
 import { requireActiveUser } from "@/server/auth";
+import { isDemoMode } from "@/server/config/environment-schema";
 import { getDatabase } from "@/server/db/client";
 import { ensureDefaultProject, listProjects } from "@/server/db/repositories";
 import { AppError } from "@/server/http/errors";
@@ -37,6 +38,7 @@ async function AuthenticatedDashboard() {
     <DashboardClient
       user={{ name: user.displayName }}
       initialProjects={projects.items.map(toProjectDto)}
+      demo={isDemoMode(process.env)}
     />
   );
 }

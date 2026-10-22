@@ -8,7 +8,8 @@ import {
   type NicheVerdict as Verdict,
 } from "@/features/research/niche";
 import { isJobInProgress, type KeywordDto, type SerpAnalysisDto } from "@/features/research/types";
-import { Badge, nicheTone } from "@/components/ui/Badge";
+import { nicheTone, type BadgeTone } from "@/components/ui/Badge";
+import { ScoreRing } from "@/components/ui/ScoreRing";
 import { formatNumber } from "@/lib/format";
 
 const VERDICT_COPY: Record<Verdict, { title: string; tone: string }> = {
@@ -49,21 +50,26 @@ export function NicheVerdict({ keyword, serp, error, showRevenue = true }: Niche
 
   return (
     <div className="space-y-4">
-      <div>
-        {verdict ? (
-          <p className={`text-2xl font-semibold ${VERDICT_COPY[verdict].tone}`}>{VERDICT_COPY[verdict].title}</p>
-        ) : (
-          <p className="text-2xl font-semibold text-slate-700">No authority data yet</p>
-        )}
-        <p className="mt-1 text-sm text-slate-600">
-          {easy === 0 ? "No" : easy} {easy === 1 ? "site" : "sites"} under authority {EASY_TARGET_AUTHORITY_MAX + 1} in the top 10
-          {dedicated > 0 ? `, ${dedicated} dedicated ${dedicated === 1 ? "site" : "sites"} ranking` : ""}
-          {keyword.searchVolume !== null ? `. ${formatNumber(keyword.searchVolume)} searches a month.` : "."}
-        </p>
+      <div className="flex items-center gap-5">
+        {serp.nicheScore !== null ? (
+          <ScoreRing value={serp.nicheScore} label="Niche score" tone={toneForRing(nicheTone(serp.nicheScore))} />
+        ) : null}
+        <div className="min-w-0">
+          {verdict ? (
+            <p className={`text-2xl font-semibold ${VERDICT_COPY[verdict].tone}`}>{VERDICT_COPY[verdict].title}</p>
+          ) : (
+            <p className="text-2xl font-semibold text-slate-700">No authority data yet</p>
+          )}
+          <p className="mt-1 text-sm text-slate-600">
+            {easy === 0 ? "No" : easy} {easy === 1 ? "site" : "sites"} under authority {EASY_TARGET_AUTHORITY_MAX + 1} in the top 10
+            {dedicated > 0 ? `, ${dedicated} dedicated ${dedicated === 1 ? "site" : "sites"} ranking` : ""}
+            {keyword.searchVolume !== null ? `. ${formatNumber(keyword.searchVolume)} searches a month.` : "."}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">Niche score: easier keywords and weaker page-1 sites score higher.</p>
+        </div>
       </div>
 
-      <dl className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-        <Stat label="Niche score" value={serp.nicheScore === null ? "—" : <Badge tone={nicheTone(serp.nicheScore)}>{serp.nicheScore}/100</Badge>} />
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <Stat label="High (>50)" value={bands.high} />
         <Stat label="Mid (30–50)" value={bands.mid} />
         <Stat label="Low (<30)" value={bands.low} highlight={bands.low > 0} />
@@ -96,4 +102,8 @@ function Stat({ label, value, highlight = false }: { label: string; value: React
       <dd className="mt-0.5 text-sm font-semibold tabular-nums text-slate-900">{value}</dd>
     </div>
   );
+}
+
+function toneForRing(tone: BadgeTone): "good" | "warn" | "bad" {
+  return tone === "good" || tone === "warn" ? tone : "bad";
 }

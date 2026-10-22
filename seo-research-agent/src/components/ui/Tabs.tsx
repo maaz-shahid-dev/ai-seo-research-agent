@@ -28,7 +28,7 @@ export function Tabs<T extends string>({ label, tabs, selected, onSelect }: Tabs
   }
 
   return (
-    <div role="tablist" aria-label={label} onKeyDown={handleKeyDown} className="flex gap-1 border-b border-slate-200">
+    <div role="tablist" aria-label={label} onKeyDown={handleKeyDown} className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
       {tabs.map((tab) => {
         const active = tab.id === selected;
         return (
@@ -45,12 +45,12 @@ export function Tabs<T extends string>({ label, tabs, selected, onSelect }: Tabs
             aria-controls={`${prefix}-panel-${tab.id}`}
             tabIndex={active ? 0 : -1}
             onClick={() => onSelect(tab.id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${
-              active ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-500 hover:text-slate-900"
+            className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition ${
+              active ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
             {tab.label}
-            {tab.count !== undefined ? <> <span className="ml-1 text-xs text-slate-400">{tab.count}</span></> : null}
+            {tab.count !== undefined ? <> <span className={`ml-1 text-xs ${active ? "text-indigo-100" : "text-slate-400"}`}>{tab.count}</span></> : null}
           </button>
         );
       })}

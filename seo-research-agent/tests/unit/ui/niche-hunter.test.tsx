@@ -138,7 +138,7 @@ describe("SERP panel", () => {
     expect(within(list).getByText("Low authority")).toBeTruthy();
     expect(within(list).getByText("<1 yr")).toBeTruthy();
     expect(screen.getByText("2 of 3 are weak spots")).toBeTruthy();
-    expect(within(screen.getByRole("dialog")).getByText("72/100")).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByRole("img", { name: "Niche score: 72 out of 100" })).toBeTruthy();
     expect(within(screen.getByRole("dialog")).getByText("Maybe — still possible")).toBeTruthy();
     expect(within(list).getByText("Dedicated site")).toBeTruthy();
     expect(within(list).getByText("Lowest authority")).toBeTruthy();
