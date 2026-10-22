@@ -23,6 +23,10 @@ export const idempotencyKeySchema = z
   .max(128)
   .regex(/^[A-Za-z0-9._:-]+$/, "Invalid idempotency key.");
 
+export const researchSubmissionSchema = researchRequestSchema.extend({
+  idempotencyKey: idempotencyKeySchema,
+});
+
 export type ResearchRequestInput = z.infer<typeof researchRequestSchema>;
 
 export function normalizeKeyword(value: string) {

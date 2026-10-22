@@ -10,7 +10,13 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
+    // PGlite and jsdom are intentionally resource-heavy; bounding workers
+    // prevents CI contention from turning otherwise deterministic tests flaky.
+    maxWorkers: 4,
+    include: [
+      "tests/unit/**/*.test.{ts,tsx}",
+      "tests/integration/**/*.test.{ts,tsx}",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],
