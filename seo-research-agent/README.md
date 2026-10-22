@@ -122,27 +122,46 @@ Browser
                  -> DataForSEO keyword worker
                       -> persisted results + AI-analysis outbox event
                            -> OpenAI analysis worker -> cited insights
+                      -> top-10 SERP analyses (outbox events)
+                           -> SERP worker -> DataForSEO SERP + domain metrics cache
                       -> status polling / CSV export
+  -> on demand: SERP for any keyword, content gap for the project website
+       -> SERP worker / content-gap worker (DataForSEO domain intersection)
 ```
+
+### Niche Hunter
+
+Every finished search shows a verdict for the searched topic, like popular niche-hunting tools:
+
+- **Verdict:** Ideal, OK, Maybe or Hard, depending on how many top-10 results have authority under 20 (3+, 2, 1, 0).
+- **Niche score (0–100):** half comes from easiness (100 − keyword difficulty), half from weak top-10 results (20 points each). A weak result is a forum, Q&A or social page, or a site with low authority (≤20), a young domain (< 2 years) or low traffic (< 1,000/month).
+- **Authority spread:** high (>50), mid (30–50) and low (<30) counts, dedicated niche sites (a homepage ranking), and whether Google shows an AI Overview.
+- **Revenue estimate:** volume × CTR (28%/15%/11% for #1–#3) × 1.4 pageviews × $20 RPM, shown with a ±25% range.
+
+The 10 best opportunities (volume × easiness) are analyzed automatically after each search. Any other keyword is analyzed when its row is opened. Website metrics (authority, traffic, age, backlinks, referring domains) are cached per registrable domain for 30 days in `domain_metrics`, shared across users because they describe the public web. Content gap compares the project's website with the three strongest competitors from the analyzed SERPs.
+
+DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection. Manual SERP lookups are limited to 60 per user per hour, and content gaps to 10.
 
 Important directories:
 
 - `src/app` - pages and HTTP route handlers
 - `src/components/ui` - shared building blocks (`Button`, `TextField`)
 - `src/components/auth` - sign-in and sign-up form
-- `src/components/dashboard` - search bar, results, AI summary, keyword table, projects, and the `useResearchRun` / `useRecentRuns` data hooks
+- `src/components/dashboard` - search bar, niche verdict, AI summary, keyword table, SERP panel, content gap, projects, and the data hooks
+- `src/hooks` - shared hooks (`usePolling` with retry backoff, dialog focus)
 - `src/lib` - browser-side API client (with retry classification) and display formatters
-- `src/features` - validation schemas, safe API DTOs, and the client types derived from them
+- `src/features` - validation schemas, safe API DTOs, client types derived from them, and the pure Niche Hunter rules (`research/niche.ts`, `research/serp.ts`, `research/domains.ts`)
 - `src/server/auth` - active-user authorization checks
 - `src/server/db` - schema, database client, and tenant-scoped repositories
-- `src/server/jobs` - Inngest functions and durable outbox dispatch
+- `src/server/jobs` - Inngest functions (research, AI analysis, SERP analysis, content gap) and durable outbox dispatch
+- `src/server/research` - route helpers shared by the research APIs
 - `src/server/providers` - bounded, validated DataForSEO and OpenAI adapters
 - `src/server/security` - same-origin checks and response security headers
 - `drizzle` - ordered SQL migrations; commit generated migrations
 - `scripts` - transactional migration runner used locally and by Vercel production builds
 - `tests` - unit, UI (jsdom), PGlite-backed integration, and Playwright end-to-end tests
 
-The dashboard polls a running search every 1.5–2.5 seconds until both the keyword job and the AI summary finish. Temporary failures (network errors, 408, 429, 5xx) retry with exponential backoff up to 30 seconds; other errors stop polling and show the server's message.
+The dashboard polls a running search every 1.5–2.5 seconds until the keyword job and the AI summary finish, then every 4 seconds while automatic SERP analyses are still running, so niche scores fill in live. Temporary failures (network errors, 408, 429, 5xx) retry with exponential backoff up to 30 seconds; other errors stop polling and show the server's message.
 
 Research submission creates a run and its outbox event atomically. A best-effort immediate dispatch keeps the UI responsive, while the scheduled outbox function recovers failed sends. When keyword evidence is stored, the worker queues AI analysis before completing the run, preserving the invariant that a completed non-empty run has a durable analysis job. AI failure never invalidates keyword results. Workers use leases, versioned state transitions, bounded provider responses, retry classification, and idempotent event IDs to make replay safe.
 
@@ -193,7 +212,6 @@ The readiness endpoint returns only `ready` or `unavailable`; it does not disclo
 
 ## Current scope and known release gaps
 
-- **Niche Hunter UI is ahead of the backend.** Results now have Keywords / Questions / Content gap tabs, sortable columns (volume, difficulty, CPC, niche score), a difficulty filter, trend sparklines, competition levels, and a SERP side panel (top 10 with authority, traffic, domain age and weak-spot badges). The scoring rules live in `src/features/research/niche.ts`, and the response shapes in `src/features/research/types.ts`. These endpoints still need to be built: `POST/GET /api/research/{runId}/serp/{keywordId}` and `POST/GET /api/research/{runId}/content-gap` (DataForSEO SERP, domain rank, traffic, WHOIS and domain-intersection data). Until then those views show the server's error.
 - The UI is US English only and runs keyword-ideas research. Additional markets require validated `provider_markets` records and a market selector.
 - Evidence-constrained OpenAI analysis is live in the worker and dashboard. The DataForSEO organic SERP adapter is implemented and tested but intentionally not exposed in the minimal UI yet.
 - Browser tests cover public/authentication boundaries and security headers. Authenticated live-provider smoke tests still require an isolated staging database and paid-provider credentials; run the deployment checklist before shifting production traffic.
