@@ -309,6 +309,7 @@ export const nicheIdeaSchema = z
     problem: boundedText(200),
     audience: boundedText(120),
     nicheType: z.enum(["info", "affiliate", "tools", "apps", "ai", "saas", "local"]),
+    countryCode: z.enum(["US", "GB", "CA", "AU", "IN", "PK", "AE", "SG", "NZ", "ZA", "NG", "PH", "IE"]),
   })
   .strict();
 

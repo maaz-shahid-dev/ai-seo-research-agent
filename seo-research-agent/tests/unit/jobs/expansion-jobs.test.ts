@@ -87,7 +87,7 @@ describe("autocomplete expansion", () => {
 });
 
 describe("daily niche ideas", () => {
-  const idea = (seedKeyword: string, niche = seedKeyword, problem = "a real problem") => ({ niche, seedKeyword, problem, audience: "hobbyists", nicheType: "info" as const });
+  const idea = (seedKeyword: string, niche = seedKeyword, problem = "a real problem") => ({ niche, seedKeyword, problem, audience: "hobbyists", nicheType: "info" as const, countryCode: "US" as const });
 
   it("keeps specific, safe, new ideas only", () => {
     const accepted = acceptableNicheIdeas([

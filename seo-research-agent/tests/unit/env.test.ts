@@ -54,6 +54,7 @@ describe("research service configuration", () => {
 
   it("is ready only when the job queue and SEO provider credentials are set", async () => {
     const { isResearchConfigured } = await import("@/server/config/environment");
+    vi.stubEnv("DEMO_DATA", "");
     for (const key of keys) vi.stubEnv(key, "configured");
     expect(isResearchConfigured()).toBe(true);
 

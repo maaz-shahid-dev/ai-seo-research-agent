@@ -21,7 +21,7 @@ describe("niche ideas API", () => {
     mocks.requireActiveUser.mockResolvedValue({ id: "u" });
     mocks.listLatestNicheIdeas.mockResolvedValue({
       date: "2026-10-22",
-      ideas: [{ id: "i1", niche: "Betta tanks", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "New fish owners", ideaDate: "2026-10-22", createdAt: new Date() }],
+      ideas: [{ id: "i1", niche: "Betta tanks", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "New fish owners", nicheType: "info", countryCode: "GB", searchVolume: 2400, difficulty: 12, lowAuthorityCount: 4, ideaDate: "2026-10-22", createdAt: new Date() }],
     });
 
     const response = await GET(new Request("https://app.example.test/api/niche-ideas"));
@@ -30,7 +30,7 @@ describe("niche ideas API", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(body).toEqual({
       date: "2026-10-22",
-      ideas: [{ id: "i1", niche: "Betta tanks", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "New fish owners" }],
+      ideas: [{ id: "i1", niche: "Betta tanks", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "New fish owners", nicheType: "info", countryCode: "GB", searchVolume: 2400, difficulty: 12, lowAuthorityCount: 4 }],
     });
   });
 

@@ -7,7 +7,17 @@ import type { NicheType } from "@/features/research/niche-types";
 import type { DatabaseClient } from "../client";
 import { nicheIdeas } from "../schema";
 
-export type NicheIdeaInput = { niche: string; seedKeyword: string; problem: string; audience: string; nicheType: NicheType };
+export type NicheIdeaInput = {
+  niche: string;
+  seedKeyword: string;
+  problem: string;
+  audience: string;
+  nicheType: NicheType;
+  countryCode: string;
+  searchVolume: number | null;
+  difficulty: number | null;
+  lowAuthorityCount: number | null;
+};
 
 /** Stores a day's ideas; re-running the same day never duplicates a seed. */
 export async function insertNicheIdeas(database: DatabaseClient, ideaDate: string, ideas: readonly NicheIdeaInput[]) {
@@ -21,6 +31,10 @@ export async function insertNicheIdeas(database: DatabaseClient, ideaDate: strin
       problem: idea.problem.trim().slice(0, 300),
       audience: idea.audience.trim().slice(0, 160),
       nicheType: idea.nicheType,
+      countryCode: idea.countryCode,
+      searchVolume: idea.searchVolume,
+      difficulty: idea.difficulty,
+      lowAuthorityCount: idea.lowAuthorityCount,
     })))
     .onConflictDoNothing();
 }

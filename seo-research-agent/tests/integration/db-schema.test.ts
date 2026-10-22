@@ -590,3 +590,17 @@ describe("PostgreSQL schema and tenant repositories", () => {
   });
 });
 
+
+describe("seeded markets", () => {
+  test("has an active English market for every country the UI offers", async () => {
+    const { MARKETS } = await import("@/features/research/markets");
+    const { client: db, database: drizzleDb } = await createTestDatabase();
+    try {
+      const rows = await drizzleDb.select().from(schema.providerMarkets);
+      const seeded = new Set(rows.filter((row) => row.active && row.languageCode === "en").map((row) => row.countryCode));
+      for (const market of MARKETS) expect(seeded.has(market.countryCode)).toBe(true);
+    } finally {
+      await db.close();
+    }
+  }, PGLITE_SETUP_TIMEOUT_MS);
+});

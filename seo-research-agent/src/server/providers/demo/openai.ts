@@ -57,6 +57,8 @@ const NICHE_IDEAS = [
   ["Piano lessons for adults", "adult piano lessons near me", "Adults feel awkward in kids' music schools.", "adult beginners", "local"],
 ] as const;
 
+const DEMO_COUNTRIES = ["US", "US", "US", "GB", "CA", "AU", "IN", "PK", "AE", "NZ", "IE", "SG"] as const;
+
 export function createDemoOpenAiClient(): OpenAiAnalysisClient {
   return {
     async analyze(request) {
@@ -110,7 +112,13 @@ export function createDemoOpenAiClient(): OpenAiAnalysisClient {
       for (let round = 0; picked.length < request.count && queues.some((queue) => queue.length > round); round += 1) {
         for (const queue of queues) if (queue[round] && picked.length < request.count) picked.push(queue[round]!);
       }
-      return { ideas: picked.map(([niche, seedKeyword, problem, audience, nicheType]) => ({ niche, seedKeyword, problem, audience, nicheType })) };
+      return {
+        ideas: picked.map(([niche, seedKeyword, problem, audience, nicheType]) => ({
+          niche, seedKeyword, problem, audience, nicheType,
+          // Stable per seed; weighted toward the US like real search demand.
+          countryCode: DEMO_COUNTRIES[hashString(seedKeyword) % DEMO_COUNTRIES.length]!,
+        })),
+      };
     },
   };
 }

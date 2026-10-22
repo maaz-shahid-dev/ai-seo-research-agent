@@ -44,5 +44,18 @@ export function isRunInProgress(run: Pick<ResearchRunDto, "status">) {
 }
 
 /** GET /api/niche-ideas */
-export type NicheIdeaDto = { id: string; niche: string; seedKeyword: string; problem: string; audience: string; nicheType: NicheType };
+export type NicheIdeaDto = {
+  id: string;
+  niche: string;
+  seedKeyword: string;
+  problem: string;
+  audience: string;
+  nicheType: NicheType;
+  countryCode: string;
+  /** Pre-checked when the ideas were generated; null if that check failed. */
+  searchVolume: number | null;
+  difficulty: number | null;
+  /** Top-10 sites with authority 20 or less. */
+  lowAuthorityCount: number | null;
+};
 export type NicheIdeasResponse = { date: string | null; ideas: NicheIdeaDto[] };

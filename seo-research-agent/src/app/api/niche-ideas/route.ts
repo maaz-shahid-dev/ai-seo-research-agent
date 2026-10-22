@@ -30,6 +30,10 @@ export async function GET(request: Request) {
         problem: idea.problem,
         audience: idea.audience,
         nicheType: idea.nicheType,
+        countryCode: idea.countryCode,
+        searchVolume: idea.searchVolume,
+        difficulty: idea.difficulty,
+        lowAuthorityCount: idea.lowAuthorityCount,
       })),
     }));
   } catch (error) {

@@ -1018,9 +1018,16 @@ export const nicheIdeas = pgTable(
     problem: varchar("problem", { length: 300 }).notNull(),
     audience: varchar("audience", { length: 160 }).notNull(),
     nicheType: varchar("niche_type", { length: 20 }).$type<NicheType>().default("info").notNull(),
+    countryCode: varchar("country_code", { length: 2 }).default("US").notNull(),
+    /** Pre-checked metrics for the seed keyword (null when the check failed). */
+    searchVolume: integer("search_volume"),
+    difficulty: smallint("difficulty"),
+    lowAuthorityCount: smallint("low_authority_count"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check("niche_ideas_country_check", sql`${table.countryCode} ~ '^[A-Z]{2}$'`),
+    check("niche_ideas_low_authority_check", sql`${table.lowAuthorityCount} is null or ${table.lowAuthorityCount} between 0 and 10`),
     check("niche_ideas_type_check", sql`${table.nicheType} in ('info', 'affiliate', 'tools', 'apps', 'ai', 'saas', 'local')`),
     uniqueIndex("niche_ideas_date_seed_unique").on(table.ideaDate, sql`lower(${table.seedKeyword})`),
     index("niche_ideas_date_idx").on(table.ideaDate),
