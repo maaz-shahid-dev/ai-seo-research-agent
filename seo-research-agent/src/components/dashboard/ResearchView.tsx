@@ -16,7 +16,8 @@ type ResearchViewProps = {
   onProjectUpdate: (project: ProjectDto) => void;
   /** Called whenever polling returns a newer copy of the run. */
   onRunChange: (run: ResearchRunDto) => void;
-  onRetry: (query: string) => void;
+  /** Runs the search again in the same country. */
+  onRetry: (query: string, countryCode: string) => void;
 };
 
 /** Shows one search from queued through finished. Remount (via `key`) to switch runs. */
@@ -53,7 +54,7 @@ export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange
           <p className="text-sm text-rose-800">
             {run.errorMessage ?? "This search didn't finish."}
           </p>
-          <Button variant="secondary" size="sm" className="mt-3" onClick={() => onRetry(run.query)}>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={() => onRetry(run.query, run.countryCode)}>
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
             Try again
           </Button>

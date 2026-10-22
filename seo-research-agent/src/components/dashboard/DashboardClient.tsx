@@ -187,7 +187,10 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
               project={project}
               onProjectUpdate={updateProjectInList}
               onRunChange={recent.upsert}
-              onRetry={retry}
+              onRetry={(seed, countryCode) => {
+                setChosenCountry(countryCode);
+                retry(seed, countryCode);
+              }}
             />
           ) : recent.loading ? null : (
             <p className="py-12 text-center text-sm text-slate-500">

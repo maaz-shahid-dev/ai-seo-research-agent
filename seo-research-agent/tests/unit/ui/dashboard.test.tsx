@@ -240,6 +240,7 @@ describe("research dashboard", () => {
     const failedRun = {
       ...queuedRun,
       status: "failed" as const,
+      countryCode: "GB",
       errorCode: "PROVIDER_REQUEST_FAILED",
       errorMessage: "Research could not be completed. Try again.",
       finishedAt: "2026-10-21T00:01:00.000Z",
@@ -259,7 +260,8 @@ describe("research dashboard", () => {
 
     await waitFor(() => expect(screen.getByLabelText("Topic or keyword")).toHaveProperty("value", "technical seo"));
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST")!;
-    expect(JSON.parse(String(post[1]!.body)).seed).toBe("technical seo");
+    expect(JSON.parse(String(post[1]!.body))).toMatchObject({ seed: "technical seo", countryCode: "GB" });
+    expect(screen.getByLabelText("Country")).toHaveProperty("value", "GB");
     expect(await screen.findByText("Starting search…")).toBeTruthy();
   });
 
