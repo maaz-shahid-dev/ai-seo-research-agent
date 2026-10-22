@@ -93,6 +93,58 @@ export function competitionLevel(value: number | null): "Low" | "Medium" | "High
   return "High";
 }
 
+export type NicheVerdict = "ideal" | "ok" | "maybe" | "hard";
+
+/** Same yardstick as popular niche tools: sites under authority 20 are easy targets. */
+export const EASY_TARGET_AUTHORITY_MAX = 19;
+
+export const VERDICT_LABELS: Record<NicheVerdict, string> = {
+  ideal: "Ideal",
+  ok: "OK",
+  maybe: "Maybe",
+  hard: "Hard",
+};
+
+type AuthorityResult = { authority: number | null };
+
+/** Ideal with 3+ easy targets in the top 10, OK with 2, Maybe with 1, else Hard. */
+export function nicheVerdict(results: readonly AuthorityResult[]): NicheVerdict | null {
+  const top = results.slice(0, SERP_DEPTH);
+  if (top.length === 0 || top.every((result) => result.authority === null)) return null;
+  const easy = top.filter((result) => result.authority !== null && result.authority <= EASY_TARGET_AUTHORITY_MAX).length;
+  return easy >= 3 ? "ideal" : easy === 2 ? "ok" : easy === 1 ? "maybe" : "hard";
+}
+
+/** How many top-10 sites fall in each authority band (unknown authority is skipped). */
+export function authorityBands(results: readonly AuthorityResult[]) {
+  const bands = { high: 0, mid: 0, low: 0 };
+  for (const { authority } of results.slice(0, SERP_DEPTH)) {
+    if (authority === null) continue;
+    if (authority > 50) bands.high += 1;
+    else if (authority >= 30) bands.mid += 1;
+    else bands.low += 1;
+  }
+  return bands;
+}
+
+/** Typical organic click-through rates for positions 1–3. */
+const CTR_BY_RANK = [0.28, 0.15, 0.11] as const;
+const PAGEVIEWS_PER_VISIT = 1.4;
+/** Display-ad revenue per 1,000 pageviews for US traffic (tier 1). */
+export const DISPLAY_AD_RPM_USD = 20;
+
+/**
+ * Rough monthly display-ad revenue for ranking #1–#3, with a ±25% range.
+ * visits = volume × CTR; revenue = visits × pageviews/visit × RPM / 1000.
+ */
+export function revenueEstimate(monthlyVolume: number | null) {
+  if (monthlyVolume === null || monthlyVolume <= 0) return [];
+  return CTR_BY_RANK.map((ctr, index) => {
+    const expected = (monthlyVolume * ctr * PAGEVIEWS_PER_VISIT * DISPLAY_AD_RPM_USD) / 1000;
+    return { rank: index + 1, monthlyUsd: Math.round(expected), lowUsd: Math.round(expected * 0.75), highUsd: Math.round(expected * 1.25) };
+  });
+}
+
 /** Monthly volumes oldest-first; months are stored as sortable "YYYY-MM". */
 export function trendVolumes(trend: readonly { month: string; volume: number }[] | null) {
   return trend ? [...trend].sort((a, b) => a.month.localeCompare(b.month)).map((point) => point.volume) : [];

@@ -6,6 +6,9 @@ import {
   findWeakSpots,
   isQuestionKeyword,
   nicheScore,
+  nicheVerdict,
+  authorityBands,
+  revenueEstimate,
   type SerpSiteMetrics,
 } from "@/features/research/niche";
 
@@ -84,5 +87,43 @@ describe("keyword helpers", () => {
     expect(competitionLevel(0.1)).toBe("Low");
     expect(competitionLevel(0.5)).toBe("Medium");
     expect(competitionLevel(0.9)).toBe("High");
+  });
+});
+
+describe("niche verdict", () => {
+  const site = (authority: number | null) => ({ authority });
+
+  it.each([
+    [[5, 12, 19, 90], "ideal"],
+    [[5, 12, 20, 90], "ok"],
+    [[5, 40, 90], "maybe"],
+    [[25, 40, 90], "hard"],
+  ] as const)("rates %j as %s", (authorities, verdict) => {
+    expect(nicheVerdict(authorities.map(site))).toBe(verdict);
+  });
+
+  it("has no verdict without authority data and ignores results past the top 10", () => {
+    expect(nicheVerdict([])).toBeNull();
+    expect(nicheVerdict([site(null), site(null)])).toBeNull();
+    expect(nicheVerdict([...Array(10).fill(site(80)), site(5)])).toBe("hard");
+  });
+
+  it("groups authority into bands", () => {
+    expect(authorityBands([site(80), site(51), site(50), site(30), site(29), site(null)]))
+      .toEqual({ high: 2, mid: 2, low: 1 });
+  });
+});
+
+describe("revenue estimate", () => {
+  it("estimates ranks 1–3 from volume, CTR, pageviews and RPM", () => {
+    const [first, second, third] = revenueEstimate(100_000);
+    expect(first).toEqual({ rank: 1, monthlyUsd: 784, lowUsd: 588, highUsd: 980 }); // 100k×0.28×1.4×$20/1000
+    expect(second!.monthlyUsd).toBe(420);
+    expect(third!.monthlyUsd).toBe(308);
+  });
+
+  it("returns nothing without volume", () => {
+    expect(revenueEstimate(null)).toEqual([]);
+    expect(revenueEstimate(0)).toEqual([]);
   });
 });
