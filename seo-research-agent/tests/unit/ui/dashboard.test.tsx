@@ -192,6 +192,23 @@ describe("research dashboard", () => {
     expect(await screen.findByText("technical seo audit")).toBeTruthy();
   });
 
+  it("shows a loading skeleton, never an empty report, while a finished search loads", async () => {
+    let resolveDetail: (response: Response) => void = () => undefined;
+    const detail = new Promise<Response>((resolve) => { resolveDetail = resolve; });
+    mockApi({
+      [HISTORY]: json({ runs: [completedRun] }),
+      [DETAIL]: () => detail,
+    });
+    renderDashboard();
+
+    expect(await screen.findByRole("status", { name: "Loading report" })).toBeTruthy();
+    expect(screen.queryByText("No keywords found for this topic.")).toBeNull();
+
+    await act(async () => resolveDetail(json(completedDetail)()));
+    expect(await screen.findByText("technical seo audit")).toBeTruthy();
+    expect(screen.queryByRole("status", { name: "Loading report" })).toBeNull();
+  });
+
   it("switches between recent searches", async () => {
     const olderRun = {
       ...completedRun,

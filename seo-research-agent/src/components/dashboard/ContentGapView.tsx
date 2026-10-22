@@ -60,7 +60,7 @@ function ContentGapReport({ runId, targetDomain }: { runId: string; targetDomain
         Keywords competitors rank for that <strong className="font-semibold text-slate-900">{gap.targetDomain}</strong> doesn&apos;t.
         {gap.competitors.length > 0 ? <> Compared with {gap.competitors.join(", ")}.</> : null}
       </p>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="relative overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full min-w-[620px] text-left text-sm">
           <thead className="bg-slate-50 text-xs text-slate-500">
             <tr>

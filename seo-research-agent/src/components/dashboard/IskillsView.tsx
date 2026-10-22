@@ -72,7 +72,7 @@ export function IskillsView({ seed, keywords, serp }: IskillsViewProps) {
           <h3 id="weakest-title" className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900">
             Weakest page-1 sites {serp?.hasAiOverview ? "(AI Overview present — check they still get traffic)" : ""}
           </h3>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500">
                 <tr>

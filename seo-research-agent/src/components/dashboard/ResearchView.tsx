@@ -21,7 +21,7 @@ type ResearchViewProps = {
 
 /** Shows one search from queued through finished. Remount (via `key`) to switch runs. */
 export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange, onRetry }: ResearchViewProps) {
-  const { run, analysis, keywords, nextCursor, error, loadingMore, loadMore } =
+  const { run, analysis, keywords, nextCursor, error, loaded, loadingMore, loadMore } =
     useResearchRun(initialRun);
 
   useEffect(() => {
@@ -35,6 +35,8 @@ export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange
 
       {isRunInProgress(run) ? (
         <ResearchProgress run={run} />
+      ) : run.status === "completed" && !loaded ? (
+        <ReportSkeleton />
       ) : run.status === "completed" ? (
         <ResearchResults
           runId={run.id}
@@ -107,4 +109,15 @@ function ResearchProgress({ run }: { run: ResearchRunDto }) {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5">{children}</span>;
+}
+
+/** Shown while a finished report's data is loading (e.g. when switching searches). */
+function ReportSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3 motion-reduce:animate-none" role="status" aria-label="Loading report">
+      <div className="h-11 rounded-xl bg-slate-200" />
+      <div className="h-48 rounded-xl bg-slate-200" />
+      <div className="h-64 rounded-xl bg-slate-200" />
+    </div>
+  );
 }

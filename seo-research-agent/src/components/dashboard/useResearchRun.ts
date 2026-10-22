@@ -56,6 +56,8 @@ export function useResearchRun(initialRun: ResearchRunDto) {
 
   return {
     run: data?.run ?? initialRun,
+    /** False until the first response arrives; avoids flashing an empty report. */
+    loaded: data !== null,
     analysis: data?.analysis ?? null,
     keywords: [...(data?.keywords ?? []), ...extra.keywords],
     nextCursor,

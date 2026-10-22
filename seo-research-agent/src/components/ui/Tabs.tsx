@@ -28,7 +28,7 @@ export function Tabs<T extends string>({ label, tabs, selected, onSelect }: Tabs
   }
 
   return (
-    <div role="tablist" aria-label={label} onKeyDown={handleKeyDown} className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+    <div role="tablist" aria-label={label} onKeyDown={handleKeyDown} className="relative flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
       {tabs.map((tab) => {
         const active = tab.id === selected;
         return (

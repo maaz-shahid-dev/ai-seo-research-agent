@@ -84,7 +84,8 @@ export function KeywordTable({ keywords, hasMore, loadingMore, onLoadMore, onSel
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
+      {/* relative: keeps absolutely positioned sr-only labels inside the scroll area. */}
+      <div className="relative overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-slate-50 text-xs text-slate-500">
             <tr>
