@@ -152,10 +152,10 @@ describe("keyword sources", () => {
 describe("launch plan", () => {
   it("shows steps, domains, structure, calendar and expandable briefs", async () => {
     const user = userEvent.setup({ delay: null });
-    render(<LaunchPlanView seed={seed.keyword} keywords={keywords} nicheType="info" />);
+    render(<LaunchPlanView runId="run-1" seed={seed.keyword} keywords={keywords} nicheType="info" />);
 
     expect(screen.getByText("Launch steps, A to Z")).toBeTruthy();
-    expect(screen.getByText("Lock the niche")).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: /Lock the niche/ })).toBeTruthy();
     expect(screen.getByText("beardeddragontanksetup.com")).toBeTruthy();
     expect(screen.getByText("Start here")).toBeTruthy();
     expect(screen.getByText("Week 1")).toBeTruthy();
@@ -167,8 +167,40 @@ describe("launch plan", () => {
     expect(within(details).getByText("Target keyword").nextElementSibling?.textContent).toBe("bearded dragon tank setup");
   });
 
+  it("ticks launch steps per search, remembers them and exports the plan", async () => {
+    const user = userEvent.setup({ delay: null });
+    const blobs: Blob[] = [];
+    const createObjectURL = vi.fn((blob: Blob) => { blobs.push(blob); return "blob:plan"; });
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    window.localStorage.clear();
+
+    const { unmount } = render(<LaunchPlanView runId="run-1" seed={seed.keyword} keywords={keywords} nicheType="info" />);
+    const step = screen.getByRole("checkbox", { name: /Lock the niche/ });
+    expect(screen.getByText(/^0 of [0-9]+ done$/)).toBeTruthy();
+    await user.click(step);
+    expect((step as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/^1 of [0-9]+ done$/)).toBeTruthy();
+    unmount();
+
+    render(<LaunchPlanView runId="run-1" seed={seed.keyword} keywords={keywords} nicheType="info" />);
+    expect((screen.getByRole("checkbox", { name: /Lock the niche/ }) as HTMLInputElement).checked).toBe(true);
+    cleanup();
+    render(<LaunchPlanView runId="run-2" seed={seed.keyword} keywords={keywords} nicheType="info" />);
+    expect((screen.getByRole("checkbox", { name: /Lock the niche/ }) as HTMLInputElement).checked).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "Export plan" }));
+    expect(click).toHaveBeenCalledOnce();
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    const markdown = await blobs[0]!.text();
+    expect(markdown).toContain("# Launch plan: bearded dragon tank setup");
+    expect(markdown).toContain("## Content briefs");
+    click.mockRestore();
+    window.localStorage.clear();
+  });
+
   it("explains an empty plan", () => {
-    render(<LaunchPlanView seed="x" keywords={[]} nicheType="info" />);
+    render(<LaunchPlanView runId="run-1" seed="x" keywords={[]} nicheType="info" />);
     expect(screen.getByText("No keywords to plan yet.")).toBeTruthy();
   });
 });
@@ -206,7 +238,7 @@ describe("launch plan briefs", () => {
   it("shows ten briefs first and the rest on request", async () => {
     const user = userEvent.setup({ delay: null });
     const many = Array.from({ length: 14 }, (_, i) => keyword(100 + i, `bearded dragon tank topic${String.fromCharCode(97 + i)}`, { searchVolume: 1_000 - i }));
-    render(<LaunchPlanView seed={seed.keyword} keywords={[seed, ...many]} nicheType="info" />);
+    render(<LaunchPlanView runId="run-1" seed={seed.keyword} keywords={[seed, ...many]} nicheType="info" />);
 
     const briefs = () => screen.getByText("Content briefs").closest("section")!.querySelectorAll("details").length;
     expect(briefs()).toBe(10);

@@ -1,31 +1,56 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, ChevronDown, FileText, Globe, Network, Rocket, Zap } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, Download, FileText, Globe, Network, Rocket, Zap } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { buildBlueprint, launchSteps, type ContentBrief } from "@/features/research/blueprint";
+import { blueprintToMarkdown, launchPlanFileName } from "@/features/research/blueprint-export";
 import { NICHE_TYPE_PROFILES, type NicheType } from "@/features/research/niche-types";
 import type { KeywordDto } from "@/features/research/types";
 import { ARTICLE_TYPE_LABELS } from "@/features/research/coverage";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useStoredChecklist } from "@/hooks/useStoredChecklist";
 import { formatNumber } from "@/lib/format";
 
 /** Briefs shown before "Show all", so the plan stays scannable. */
 const BRIEFS_PREVIEW = 10;
 
-type LaunchPlanViewProps = { seed: string; keywords: readonly KeywordDto[]; nicheType: NicheType };
+type LaunchPlanViewProps = {
+  /** Ticked steps are remembered per search. */
+  runId: string;
+  seed: string;
+  keywords: readonly KeywordDto[];
+  nicheType: NicheType;
+};
 
 /** From niche to income: steps, domain, structure, briefs and a 12-week calendar. */
-export function LaunchPlanView({ seed, keywords, nicheType }: LaunchPlanViewProps) {
+export function LaunchPlanView({ runId, seed, keywords, nicheType }: LaunchPlanViewProps) {
   const blueprint = useMemo(() => buildBlueprint(seed, keywords, nicheType), [seed, keywords, nicheType]);
   const steps = useMemo(() => launchSteps(nicheType), [nicheType]);
   const [showAllBriefs, setShowAllBriefs] = useState(false);
+  const progress = useStoredChecklist(`seo-research:launch:${runId}`);
+  const doneCount = steps.filter((step) => progress.done.has(step.title)).length;
+
+  function exportPlan() {
+    const file = new Blob([blueprintToMarkdown(blueprint, steps, progress.done)], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = launchPlanFileName(blueprint.seed);
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   if (blueprint.briefs.length === 0) return <p className="py-6 text-sm text-slate-500">No keywords to plan yet.</p>;
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="secondary" size="sm" onClick={exportPlan}>
+          <Download className="h-4 w-4" aria-hidden="true" /> Export plan
+        </Button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-4">
         <Total label="Niche type" value={NICHE_TYPE_PROFILES[nicheType].label} />
         <Total label="Articles" value={formatNumber(blueprint.totals.articles)} />
@@ -33,17 +58,28 @@ export function LaunchPlanView({ seed, keywords, nicheType }: LaunchPlanViewProp
         <Total label="Words to write" value={formatNumber(blueprint.totals.words)} />
       </div>
 
-      <Section icon={Rocket} title="Launch steps, A to Z">
+      <Section icon={Rocket} title="Launch steps, A to Z" note={`${doneCount} of ${steps.length} done`}>
+        <progress value={doneCount} max={steps.length} aria-label="Launch progress" className="mb-3 h-1.5 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:bg-emerald-500 [&::-webkit-progress-bar]:bg-slate-100 [&::-webkit-progress-value]:bg-emerald-500" />
         <ol className="space-y-3">
-          {steps.map((step, index) => (
-            <li key={step.title} className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-700">{index + 1}</span>
-              <div>
-                <p className="text-sm font-medium text-slate-900">{step.title}</p>
-                <p className="text-sm text-slate-600">{step.detail}</p>
-              </div>
-            </li>
-          ))}
+          {steps.map((step, index) => {
+            const done = progress.done.has(step.title);
+            const id = `launch-step-${index}`;
+            return (
+              <li key={step.title} className="flex gap-3">
+                <input
+                  id={id}
+                  type="checkbox"
+                  checked={done}
+                  onChange={() => progress.toggle(step.title)}
+                  className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-slate-300 accent-emerald-600"
+                />
+                <label htmlFor={id} className="cursor-pointer">
+                  <span className={`block text-sm font-medium ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{index + 1}. {step.title}</span>
+                  <span className="block text-sm text-slate-600">{step.detail}</span>
+                </label>
+              </li>
+            );
+          })}
         </ol>
       </Section>
 

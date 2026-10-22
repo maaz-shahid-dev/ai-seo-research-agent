@@ -98,7 +98,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
         {tab === "keywords" ? table(keywords) : null}
         {tab === "questions" ? table(questions, "No question keywords for this topic.") : null}
         {tab === "plan" && seed ? <ContentPlanView seed={seed.keyword} keywords={keywords} /> : null}
-        {tab === "launch" && seed ? <LaunchPlanView seed={seed.keyword} keywords={keywords} nicheType={nicheType} /> : null}
+        {tab === "launch" && seed ? <LaunchPlanView runId={runId} seed={seed.keyword} keywords={keywords} nicheType={nicheType} /> : null}
         {tab === "kgr" ? <KgrView runId={runId} keywords={keywords} /> : null}
         {tab === "iskills" && seed ? <IskillsView seed={seed} keywords={keywords} serp={seedSerp.data} /> : null}
         {tab === "content-gap" ? <ContentGapView runId={runId} project={project} onProjectUpdate={onProjectUpdate} /> : null}

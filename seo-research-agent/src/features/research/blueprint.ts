@@ -205,7 +205,7 @@ export function launchSteps(nicheType: NicheType): LaunchStep[] {
   ];
 }
 
-function slugify(value: string) {
+export function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
