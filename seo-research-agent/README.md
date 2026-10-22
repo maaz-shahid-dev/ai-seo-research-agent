@@ -152,7 +152,7 @@ The 10 best opportunities (volume × easiness) are analyzed automatically after 
   - manageable coverage; low backlink needs; enough volume.
   - It ends with a Go / Maybe / Avoid verdict and the weakest page-1 sites, with traffic, ranking keywords and age.
   - Niches to avoid are gambling, adult, piracy and cracks, file/movie/MP3 downloads, and YMYL health or finance (`src/features/research/restricted.ts`).
-- **Daily niches:** a 05:00 UTC Inngest cron asks OpenAI for 12 specific niche ideas. It drops restricted, single-word and recently repeated ideas, and stores the rest in `niche_ideas`. Users see them under Daily niches and can check one with a click.
+- **Daily niches:** a 05:00 UTC Inngest cron asks OpenAI for 12 specific niche ideas. It drops restricted, single-word and recently repeated ideas, and stores the rest in `niche_ideas`. Each idea has a country and is pre-checked in that market: search volume, difficulty and how many top-10 sites have authority 20 or less. A failed check leaves those metrics empty. Users see the ideas under Daily niches with a **Low DR** filter (3+ sites ≤ DR 20), sorting (best opportunity, highest volume, lowest difficulty) and a country filter. "Check niche" researches the idea in its own country.
 
 ### Niche types and launch plan
 
@@ -163,9 +163,18 @@ The 10 best opportunities (volume × easiness) are analyzed automatically after 
   - silo structure with URLs and internal links;
   - a content brief per article (target and secondary keywords, H2 outline, questions to answer, word count, links);
   - a 12-week calendar that publishes the pillar first, then quick wins.
+  - Launch steps are checkboxes with a progress bar, remembered per search in the browser;
+  - **Export plan** downloads the whole plan as a Markdown file (`src/features/research/blueprint-export.ts`).
 - **Daily niches by type:** ideas are spread across every niche type, and users can filter them.
 
-DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection, SERP Google Autocomplete and Labs keyword overview. Site ranking-keyword counts come from the WHOIS overview's organic count. Manual SERP lookups are limited to 60 per user per hour, and content gaps to 10.
+### Markets, KGR, history and layout
+
+- **Markets** (`src/features/research/markets.ts`, migrations 0001 and 0006): 13 English markets (US, UK, Canada, Australia, India, Pakistan, UAE, Singapore, New Zealand, South Africa, Nigeria, Philippines, Ireland). The search box has a country picker.
+- **Keyword Golden Ratio** (`src/features/research/kgr.ts`, `POST /api/research/{runId}/kgr`): for keywords with 250 or fewer monthly searches, the KGR tab looks up `allintitle:` result counts (up to 10 per request, 20 requests per user per hour). Counts are stored on the keyword and never looked up twice. KGR under 0.25 is "Golden", up to 1 is "Possible", above that is "Crowded".
+- **History**: every search in the project, with search, paging, reopen and delete (with confirmation). Deleting a search removes its keywords, SERP analyses and content gap reports (`DELETE /api/research/{runId}`).
+- **Sidebar**: on desktop it collapses to an icon rail, automatically below 1280px or with the toggle (the choice is remembered). Phones use a drawer.
+
+DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection, SERP Google Autocomplete and Labs keyword overview. Site ranking-keyword counts come from the WHOIS overview's organic count. Manual SERP lookups are limited to 60 per user per hour, content gaps to 10, and KGR batches to 20.
 
 Important directories:
 
@@ -237,6 +246,6 @@ The readiness endpoint returns only `ready` or `unavailable`; it does not disclo
 
 ## Current scope and known release gaps
 
-- The UI is US English only and runs keyword-ideas research. Additional markets require validated `provider_markets` records and a market selector.
-- Evidence-constrained OpenAI analysis is live in the worker and dashboard. The DataForSEO organic SERP adapter is implemented and tested but intentionally not exposed in the minimal UI yet.
+- Research runs in 13 English-language markets. Other languages need new `provider_markets` rows and translated UI copy.
+- Launch-step progress lives in the browser (localStorage), so it does not follow the user to another device.
 - Browser tests cover public/authentication boundaries and security headers. Authenticated live-provider smoke tests still require an isolated staging database and paid-provider credentials; run the deployment checklist before shifting production traffic.
