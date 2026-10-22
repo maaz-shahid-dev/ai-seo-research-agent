@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe("authentication form", () => {
   it("submits credentials and shows the same message for invalid sign-in", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     signInMock.mockResolvedValue({ ok: false, code: "credentials", url: null });
     render(<AuthForm mode="sign-in" />);
 
@@ -31,28 +31,38 @@ describe("authentication form", () => {
       redirect: false,
       redirectTo: "/",
     });
-    expect(screen.getByRole("alert").textContent).toContain("Email or password is incorrect.");
+    expect((await screen.findByRole("alert")).textContent).toContain("Email or password is incorrect.");
   });
 
-  it("does not send registration when password confirmation differs", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+  it("states the password rule on sign-up and enforces it in the field", () => {
+    render(<AuthForm mode="sign-up" />);
+
+    const password = screen.getByLabelText("Password");
+    expect(password.getAttribute("minlength")).toBe("12");
+    expect(password.getAttribute("autocomplete")).toBe("new-password");
+    expect(screen.getByText("At least 12 characters.").id).toBe(password.getAttribute("aria-describedby"));
+  });
+
+  it.each([
+    [409, "We couldn't create this account. Check your details, or sign in if you already have one."],
+    [429, "Too many attempts. Try again later."],
+    [503, "Sign-up is temporarily unavailable. Try again shortly."],
+  ])("explains a %i registration failure without signing in", async (status, message) => {
+    const user = userEvent.setup({ delay: null });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status })));
     render(<AuthForm mode="sign-up" />);
 
     await user.type(screen.getByLabelText("Name"), "Person Example");
     await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "correct horse battery staple");
-    await user.type(screen.getByLabelText("Confirm password"), "different password value");
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect((await screen.findByRole("alert")).textContent).toBe(message);
     expect(signInMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert").textContent).toContain("Passwords do not match.");
   });
 
   it("registers only allowed fields before signing in", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), {
       status: 201,
       headers: { "content-type": "application/json" },
@@ -64,7 +74,6 @@ describe("authentication form", () => {
     await user.type(screen.getByLabelText("Name"), "Person Example");
     await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "correct horse battery staple");
-    await user.type(screen.getByLabelText("Confirm password"), "correct horse battery staple");
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(fetchMock).toHaveBeenCalledOnce();
