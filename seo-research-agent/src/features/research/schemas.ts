@@ -27,6 +27,11 @@ export const researchSubmissionSchema = researchRequestSchema.extend({
   idempotencyKey: idempotencyKeySchema,
 });
 
+export const researchHistoryQuerySchema = z.object({
+  projectId: projectIdSchema,
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
 export type ResearchRequestInput = z.infer<typeof researchRequestSchema>;
 
 export function normalizeKeyword(value: string) {

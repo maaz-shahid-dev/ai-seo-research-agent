@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   listMissingEnvironmentKeys,
   productionEnvironmentKeys,
@@ -42,5 +42,20 @@ describe("runtime environment", () => {
   it("keeps migration credentials out of runtime readiness", () => {
     expect(runtimeReadinessKeys).not.toContain("MIGRATION_DATABASE_URL");
     expect(productionEnvironmentKeys).toContain("MIGRATION_DATABASE_URL");
+  });
+});
+
+describe("research service configuration", () => {
+  const keys = ["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY", "DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD"];
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("is ready only when the job queue and SEO provider credentials are set", async () => {
+    const { isResearchConfigured } = await import("@/server/config/environment");
+    for (const key of keys) vi.stubEnv(key, "configured");
+    expect(isResearchConfigured()).toBe(true);
+
+    vi.stubEnv("DATAFORSEO_PASSWORD", " ");
+    expect(isResearchConfigured()).toBe(false);
   });
 });

@@ -6,6 +6,7 @@ import {
   listMissingEnvironmentKeys,
   migrationEnvironmentSchema,
   openAiEnvironmentSchema,
+  researchServiceKeys,
   runtimeReadinessKeys,
   runtimeEnvironmentSchema,
   upstashEnvironmentSchema,
@@ -33,6 +34,10 @@ export function getDataForSeoEnvironment() {
 
 export function getOpenAiEnvironment() {
   return openAiEnvironmentSchema.parse(process.env);
+}
+
+export function isResearchConfigured() {
+  return listMissingEnvironmentKeys(process.env, researchServiceKeys).length === 0;
 }
 
 export function getEnvironmentReadiness() {

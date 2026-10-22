@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => {
     getLatestAiAnalysisForRun: vi.fn(),
     getResearchRunById: vi.fn(),
     listKeywordResults: vi.fn(),
+    listResearchRuns: vi.fn(),
+    isResearchConfigured: vi.fn(),
     dispatchResearchRunNow: vi.fn(),
     enforceRateLimit: vi.fn(),
   };
@@ -34,6 +36,10 @@ vi.mock("@/server/db/repositories", () => ({
   getProjectById: mocks.getProjectById,
   getResearchRunById: mocks.getResearchRunById,
   listKeywordResults: mocks.listKeywordResults,
+  listResearchRuns: mocks.listResearchRuns,
+}));
+vi.mock("@/server/config/environment", () => ({
+  isResearchConfigured: mocks.isResearchConfigured,
 }));
 vi.mock("@/server/jobs", () => ({ dispatchResearchRunNow: mocks.dispatchResearchRunNow }));
 vi.mock("@/server/rate-limit/rate-limit", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
@@ -41,7 +47,7 @@ vi.mock("@/server/logging/logger", () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-import { POST as createResearchRoute } from "@/app/api/research/route";
+import { GET as listResearchRoute, POST as createResearchRoute } from "@/app/api/research/route";
 import { GET as getResearchRoute } from "@/app/api/research/[runId]/route";
 
 const USER_ID = "10000000-0000-4000-8000-000000000001";
@@ -132,6 +138,59 @@ beforeEach(() => {
   mocks.getLatestAiAnalysisForRun.mockResolvedValue(null);
   mocks.getResearchRunById.mockResolvedValue(completedRun);
   mocks.listKeywordResults.mockResolvedValue({ items: [], nextCursor: null });
+  mocks.listResearchRuns.mockResolvedValue({ items: [completedRun], nextCursor: null });
+  mocks.isResearchConfigured.mockReturnValue(true);
+});
+
+describe("research history API", () => {
+  it("lists recent runs for the owner and project with a bounded limit", async () => {
+    const response = await listResearchRoute(historyRequest(`?projectId=${PROJECT_ID}&limit=5`));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mocks.listResearchRuns).toHaveBeenCalledWith(mocks.database, USER_ID, {
+      projectId: PROJECT_ID,
+      limit: 5,
+    });
+    expect(payload.runs).toEqual([
+      expect.objectContaining({ id: RUN_ID, query: "technical seo", status: "completed" }),
+    ]);
+    expect(payload.runs[0]).not.toHaveProperty("ownerId");
+    expect(payload.runs[0]).not.toHaveProperty("idempotencyKey");
+  });
+
+  it("defaults the limit to ten", async () => {
+    await listResearchRoute(historyRequest(`?projectId=${PROJECT_ID}`));
+
+    expect(mocks.listResearchRuns).toHaveBeenCalledWith(mocks.database, USER_ID, {
+      projectId: PROJECT_ID,
+      limit: 10,
+    });
+  });
+
+  it.each([
+    ["a missing project", ""],
+    ["an invalid project", "?projectId=not-a-uuid"],
+    ["an excessive limit", `?projectId=${PROJECT_ID}&limit=500`],
+    ["a non-numeric limit", `?projectId=${PROJECT_ID}&limit=abc`],
+  ])("rejects %s", async (_label, search) => {
+    const response = await listResearchRoute(historyRequest(search));
+
+    expect(response.status).toBe(400);
+    expect(mocks.listResearchRuns).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication before reading history", async () => {
+    mocks.requireActiveUser.mockRejectedValue(
+      new AppError("Sign in to continue.", "UNAUTHENTICATED", 401, false),
+    );
+
+    const response = await listResearchRoute(historyRequest(`?projectId=${PROJECT_ID}`));
+
+    expect(response.status).toBe(401);
+    expect(mocks.listResearchRuns).not.toHaveBeenCalled();
+  });
 });
 
 describe("research submission API", () => {
@@ -160,6 +219,20 @@ describe("research submission API", () => {
     expect(response.status).toBe(401);
     expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
     expect(mocks.getProjectById).not.toHaveBeenCalled();
+  });
+
+  it("explains when research services are not configured instead of queuing a stuck run", async () => {
+    mocks.isResearchConfigured.mockReturnValue(false);
+
+    const response = await createResearchRoute(researchRequest());
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload.error.code).toBe("RESEARCH_NOT_CONFIGURED");
+    expect(payload.error.message).toBe("Keyword research isn't available yet. Try again later.");
+    expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
+    expect(mocks.createResearchRun).not.toHaveBeenCalled();
+    expect(mocks.dispatchResearchRunNow).not.toHaveBeenCalled();
   });
 
   it("rejects invalid JSON fields without creating or dispatching a run", async () => {
@@ -395,6 +468,10 @@ describe("research status API", () => {
     });
   });
 });
+
+function historyRequest(search: string) {
+  return new Request(`https://app.example.test/api/research${search}`);
+}
 
 function researchRequest(
   body: unknown = {

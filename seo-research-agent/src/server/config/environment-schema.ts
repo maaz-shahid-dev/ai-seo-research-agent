@@ -52,6 +52,14 @@ export const runtimeReadinessKeys = [
   "OPENAI_MODEL",
 ] as const;
 
+/** Services a research run needs before it can be queued and processed. */
+export const researchServiceKeys = [
+  "INNGEST_EVENT_KEY",
+  "INNGEST_SIGNING_KEY",
+  "DATAFORSEO_LOGIN",
+  "DATAFORSEO_PASSWORD",
+] as const;
+
 export const productionEnvironmentKeys = [
   ...runtimeReadinessKeys,
   "MIGRATION_DATABASE_URL",
