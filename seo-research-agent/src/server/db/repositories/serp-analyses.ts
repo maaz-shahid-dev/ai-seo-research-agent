@@ -296,3 +296,16 @@ export async function listSerpAnalysesForKeywords(
       inArray(serpAnalyses.keywordResultId, [...keywordResultIds]),
     ));
 }
+
+/** SERP analyses of a run that are still queued or running. */
+export async function countPendingSerpAnalyses(database: DatabaseClient, ownerId: string, runId: string) {
+  const [row] = await database
+    .select({ count: sql<number>`count(*)::int` })
+    .from(serpAnalyses)
+    .where(and(
+      eq(serpAnalyses.ownerId, ownerId),
+      eq(serpAnalyses.runId, runId),
+      inArray(serpAnalyses.status, ["queued", "running"]),
+    ));
+  return Number(row?.count ?? 0);
+}

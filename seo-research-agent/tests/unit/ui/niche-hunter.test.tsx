@@ -32,14 +32,14 @@ const project: ProjectDto = {
 };
 
 const serp: SerpAnalysisDto = {
-  keywordId: 1, status: "completed", nicheScore: 72, errorMessage: null, fetchedAt: "2026-10-22T00:00:00.000Z",
+  keywordId: 1, status: "completed", nicheScore: 72, hasAiOverview: true, errorMessage: null, fetchedAt: "2026-10-22T00:00:00.000Z",
   results: [
     { rank: 1, title: "Best shoes thread", url: "https://www.reddit.com/r/running/1", domain: "reddit.com",
-      authority: 91, monthlyTraffic: 900_000, domainAgeYears: 20, siteType: "forum", weakSpots: ["forum"] },
+      authority: 91, monthlyTraffic: 900_000, domainAgeYears: 20, siteType: "forum", weakSpots: ["forum"], backlinks: 1_000, referringDomains: 400, isHomepage: false },
     { rank: 2, title: "Evil link", url: "javascript:alert(1)", domain: "smallblog.com",
-      authority: 12, monthlyTraffic: 800, domainAgeYears: 0.5, siteType: "other", weakSpots: ["low-authority", "new-site", "low-traffic"] },
+      authority: 12, monthlyTraffic: 800, domainAgeYears: 0.5, siteType: "other", weakSpots: ["low-authority", "new-site", "low-traffic"], backlinks: 12, referringDomains: 3, isHomepage: true },
     { rank: 3, title: "Nike", url: "https://nike.com/shoes", domain: "nike.com",
-      authority: 95, monthlyTraffic: 5_000_000, domainAgeYears: 28, siteType: "other", weakSpots: [] },
+      authority: 95, monthlyTraffic: 5_000_000, domainAgeYears: 28, siteType: "other", weakSpots: [], backlinks: null, referringDomains: null, isHomepage: false },
   ],
 };
 

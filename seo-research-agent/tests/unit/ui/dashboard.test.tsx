@@ -70,6 +70,7 @@ const completedDetail: ResearchDetailResponse = {
   run: completedRun,
   keywords: [keyword],
   nextCursor: null,
+  pendingSerpCount: 0,
   analysis: {
     id: "40000000-0000-4000-8000-000000000001",
     status: "completed",
@@ -220,9 +221,9 @@ describe("research dashboard", () => {
     const retriedRun = { ...queuedRun, id: "30000000-0000-4000-8000-000000000003", createdAt: "2026-10-21T00:02:00.000Z" };
     const fetchMock = mockApi({
       [HISTORY]: json({ runs: [failedRun] }),
-      [DETAIL]: json({ run: failedRun, keywords: [], nextCursor: null, analysis: null }),
+      [DETAIL]: json({ run: failedRun, keywords: [], nextCursor: null, analysis: null, pendingSerpCount: 0 }),
       "POST /api/research": json({ run: retriedRun }, 202),
-      [`GET /api/research/${retriedRun.id}`]: json({ run: retriedRun, keywords: [], nextCursor: null, analysis: null }),
+      [`GET /api/research/${retriedRun.id}`]: json({ run: retriedRun, keywords: [], nextCursor: null, analysis: null, pendingSerpCount: 0 }),
     });
     const user = renderDashboard();
 
@@ -277,7 +278,7 @@ describe("research dashboard", () => {
     mockApi({
       [HISTORY]: json({ runs: [queuedRun] }),
       [DETAIL]: [
-        json({ run: queuedRun, keywords: [], nextCursor: null, analysis: null }),
+        json({ run: queuedRun, keywords: [], nextCursor: null, analysis: null, pendingSerpCount: 0 }),
         () => Promise.reject(new TypeError("Failed to fetch")),
         json(completedDetail),
       ],

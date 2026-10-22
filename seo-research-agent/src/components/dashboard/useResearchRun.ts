@@ -14,11 +14,15 @@ import { apiRequest, errorMessage } from "@/lib/api-client";
 
 const QUEUED_POLL_MS = 1_500;
 const ACTIVE_POLL_MS = 2_500;
+// SERP analyses take longer; niche scores fill in without hammering the API.
+const SERP_POLL_MS = 4_000;
 
-/** Polls until both the keyword job and the AI analysis have settled. */
-function nextDelay({ run, analysis }: ResearchDetailResponse) {
+/** Polls until the keyword job, the AI analysis and the automatic SERP analyses settle. */
+function nextDelay({ run, analysis, pendingSerpCount }: ResearchDetailResponse) {
   if (isRunInProgress(run)) return run.status === "queued" ? QUEUED_POLL_MS : ACTIVE_POLL_MS;
-  return run.status === "completed" && isJobInProgress(analysis) ? ACTIVE_POLL_MS : null;
+  if (run.status !== "completed") return null;
+  if (isJobInProgress(analysis)) return ACTIVE_POLL_MS;
+  return pendingSerpCount > 0 ? SERP_POLL_MS : null;
 }
 
 /** Loads one research run, keeps it fresh, and pages through its keywords. */

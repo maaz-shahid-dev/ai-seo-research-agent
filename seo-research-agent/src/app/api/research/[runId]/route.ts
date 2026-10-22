@@ -3,9 +3,11 @@ import { toAiAnalysisDto, toKeywordDto, toResearchRunDto } from "@/features/rese
 import { requireActiveUser } from "@/server/auth";
 import { getDatabase } from "@/server/db/client";
 import {
+  countPendingSerpAnalyses,
   getLatestAiAnalysisForRun,
   getResearchRunById,
   listKeywordResults,
+  listNicheScores,
 } from "@/server/db/repositories";
 import { AppError, errorResponse } from "@/server/http/errors";
 import { noStore, readRequestId } from "@/server/http/request";
@@ -21,18 +23,22 @@ export async function GET(request: Request, context: RouteContext) {
     const run = await getResearchRunById(getDatabase(), user.id, runId);
     if (!run) throw new AppError("Research not found.", "NOT_FOUND", 404, false);
 
-    const [keywords, analysis] = await Promise.all([
-      run.status === "completed"
+    const completed = run.status === "completed";
+    const [keywords, analysis, nicheScores, pendingSerpCount] = await Promise.all([
+      completed
         ? listKeywordResults(getDatabase(), user.id, run.id, { afterId, limit: 100 })
         : Promise.resolve({ items: [], nextCursor: null }),
       getLatestAiAnalysisForRun(getDatabase(), user.id, run.id),
+      completed ? listNicheScores(getDatabase(), user.id, run.id) : Promise.resolve(new Map<number, number>()),
+      completed ? countPendingSerpAnalyses(getDatabase(), user.id, run.id) : Promise.resolve(0),
     ]);
     return noStore(
       Response.json({
         run: toResearchRunDto(run),
-        keywords: keywords.items.map((keyword) => toKeywordDto(keyword)),
+        keywords: keywords.items.map((keyword) => toKeywordDto(keyword, nicheScores)),
         nextCursor: keywords.nextCursor,
         analysis: toAiAnalysisDto(analysis),
+        pendingSerpCount,
       }),
     );
   } catch (error) {

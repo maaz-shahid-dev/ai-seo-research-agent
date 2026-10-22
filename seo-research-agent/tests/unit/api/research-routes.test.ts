@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => {
     getResearchRunById: vi.fn(),
     listKeywordResults: vi.fn(),
     listResearchRuns: vi.fn(),
+    listNicheScores: vi.fn(),
+    countPendingSerpAnalyses: vi.fn(),
     isResearchConfigured: vi.fn(),
     dispatchResearchRunNow: vi.fn(),
     enforceRateLimit: vi.fn(),
@@ -37,6 +39,8 @@ vi.mock("@/server/db/repositories", () => ({
   getResearchRunById: mocks.getResearchRunById,
   listKeywordResults: mocks.listKeywordResults,
   listResearchRuns: mocks.listResearchRuns,
+  listNicheScores: mocks.listNicheScores,
+  countPendingSerpAnalyses: mocks.countPendingSerpAnalyses,
 }));
 vi.mock("@/server/config/environment", () => ({
   isResearchConfigured: mocks.isResearchConfigured,
@@ -140,6 +144,8 @@ beforeEach(() => {
   mocks.listKeywordResults.mockResolvedValue({ items: [], nextCursor: null });
   mocks.listResearchRuns.mockResolvedValue({ items: [completedRun], nextCursor: null });
   mocks.isResearchConfigured.mockReturnValue(true);
+  mocks.listNicheScores.mockResolvedValue(new Map());
+  mocks.countPendingSerpAnalyses.mockResolvedValue(0);
 });
 
 describe("research history API", () => {

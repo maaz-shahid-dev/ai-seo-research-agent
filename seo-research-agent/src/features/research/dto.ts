@@ -1,5 +1,9 @@
 import { researchAnalysisSchema } from "@/server/providers/types";
-import type { AiAnalysis, KeywordResult, ResearchRun } from "@/server/db/schema";
+import type { AiAnalysis, ContentGapReport, KeywordResult, ResearchRun, SerpAnalysis, SerpResult } from "@/server/db/schema";
+
+import { isHomepageUrl } from "./domains";
+import { classifySite, findWeakSpots } from "./niche";
+import { siteMetricsFor, type StoredDomainMetrics } from "./serp";
 
 export function toResearchRunDto(run: ResearchRun) {
   return {
@@ -78,5 +82,55 @@ export function toAiAnalysisDto(analysis: AiAnalysis | null) {
       ? analysis.errorMessage ?? "AI insights could not be generated."
       : null,
     updatedAt: analysis.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * SERP analysis with each result joined to the cached metrics of its
+ * registrable domain. Weak spots are derived at read time, so refreshed
+ * metrics show up without re-running the analysis.
+ */
+export function toSerpAnalysisDto(
+  analysis: SerpAnalysis,
+  results: readonly SerpResult[],
+  metricsByDomain: ReadonlyMap<string, StoredDomainMetrics>,
+  now = new Date(),
+) {
+  return {
+    keywordId: analysis.keywordResultId,
+    status: analysis.status,
+    nicheScore: analysis.status === "completed" ? analysis.nicheScore : null,
+    hasAiOverview: analysis.hasAiOverview,
+    errorMessage: analysis.status === "failed" ? analysis.errorMessage ?? "SERP analysis failed." : null,
+    fetchedAt: analysis.finishedAt?.toISOString() ?? null,
+    results: results.flatMap((result) => {
+      if (!result.domain) return [];
+      const site = siteMetricsFor(result.domain, metricsByDomain, now);
+      const url = result.url ?? "";
+      return [{
+        rank: result.rank,
+        title: result.title ?? url,
+        url,
+        domain: result.domain.replace(/^www\./, ""),
+        authority: site.authority,
+        monthlyTraffic: site.monthlyTraffic,
+        domainAgeYears: site.domainAgeYears,
+        backlinks: site.backlinks,
+        referringDomains: site.referringDomains,
+        isHomepage: isHomepageUrl(url),
+        siteType: classifySite(result.domain),
+        weakSpots: findWeakSpots(site),
+      }];
+    }),
+  };
+}
+
+export function toContentGapDto(report: ContentGapReport) {
+  return {
+    status: report.status,
+    targetDomain: report.targetDomain,
+    competitors: report.competitors,
+    keywords: report.keywords,
+    errorMessage: report.status === "failed" ? report.errorMessage ?? "Content gap analysis failed." : null,
   };
 }
