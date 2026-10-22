@@ -2,15 +2,16 @@
 
 import { ExternalLink, Loader2, X } from "lucide-react";
 
-import { competitionLevel, WEAK_SPOT_LABELS } from "@/features/research/niche";
+import { competitionLevel, EASY_TARGET_AUTHORITY_MAX, WEAK_SPOT_LABELS } from "@/features/research/niche";
 import { isJobInProgress, type KeywordDto, type SerpResultDto } from "@/features/research/types";
-import { Badge, difficultyTone, nicheTone } from "@/components/ui/Badge";
+import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import { RETRYING_MESSAGE } from "@/hooks/usePolling";
 import { formatCurrencyMicros, formatNumber } from "@/lib/format";
 import { safeExternalUrl } from "@/lib/url";
 
+import { NicheVerdict } from "./NicheVerdict";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
 type SerpPanelProps = {
@@ -23,8 +24,8 @@ type SerpPanelProps = {
 export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
   const dialogRef = useDialogFocus<HTMLDivElement>(true, onClose);
   const { data: serp, error } = useSerpAnalysis(runId, keyword.id);
-  const niche = serp?.nicheScore ?? keyword.nicheScore;
   const weakCount = serp?.results.filter((result) => result.weakSpots.length > 0).length ?? 0;
+  const lowestAuthority = lowestAuthorityRank(serp?.results ?? []);
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
@@ -48,7 +49,7 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
         </header>
 
         <div className="space-y-5 p-5">
-          <dl className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Metric label="Volume" value={formatNumber(keyword.searchVolume)} />
             <Metric
               label="Difficulty"
@@ -56,8 +57,9 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
             />
             <Metric label="CPC" value={formatCurrencyMicros(keyword.cpcMicros)} />
             <Metric label="Competition" value={competitionLevel(keyword.competition) ?? "—"} />
-            <Metric label="Niche score" value={niche === null ? "—" : <Badge tone={nicheTone(niche)}>{niche}</Badge>} />
           </dl>
+
+          {serp?.status === "completed" ? <NicheVerdict keyword={keyword} serp={serp} error={null} showRevenue={false} /> : null}
 
           <TrendBars trend={keyword.trend} />
 
@@ -81,7 +83,9 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
               <p className="mt-3 text-sm text-rose-700" role="alert">{serp.errorMessage ?? "SERP analysis failed."}</p>
             ) : (
               <ol className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
-                {serp.results.map((result) => <SerpRow key={result.rank} result={result} />)}
+                {serp.results.map((result) => (
+                  <SerpRow key={result.rank} result={result} isLowest={result.rank === lowestAuthority} />
+                ))}
               </ol>
             )}
           </section>
@@ -91,10 +95,12 @@ export function SerpPanel({ runId, keyword, onClose }: SerpPanelProps) {
   );
 }
 
-function SerpRow({ result }: { result: SerpResultDto }) {
+function SerpRow({ result, isLowest }: { result: SerpResultDto; isLowest: boolean }) {
   const href = safeExternalUrl(result.url);
+  // Green rows are easy targets, as in classic niche-hunting tools.
+  const easy = result.authority !== null && result.authority <= EASY_TARGET_AUTHORITY_MAX;
   return (
-    <li className="flex gap-3 p-3">
+    <li className={`flex gap-3 p-3 ${easy ? "bg-emerald-50/60" : ""}`}>
       <span className="w-6 shrink-0 pt-0.5 text-right text-sm font-semibold tabular-nums text-slate-400">{result.rank}</span>
       <div className="min-w-0 flex-1">
         {href ? (
@@ -110,6 +116,10 @@ function SerpRow({ result }: { result: SerpResultDto }) {
           <span>Authority <strong className="font-semibold text-slate-900">{result.authority ?? "—"}</strong></span>
           <span>Traffic <strong className="font-semibold text-slate-900">{formatNumber(result.monthlyTraffic)}</strong></span>
           <span>Age <strong className="font-semibold text-slate-900">{formatAge(result.domainAgeYears)}</strong></span>
+          <span>Backlinks <strong className="font-semibold text-slate-900">{formatCompact(result.backlinks)}</strong></span>
+          <span>Ref. domains <strong className="font-semibold text-slate-900">{formatCompact(result.referringDomains)}</strong></span>
+          {result.isHomepage ? <Badge tone="accent">Dedicated site</Badge> : null}
+          {isLowest ? <Badge tone="good">Lowest authority</Badge> : null}
           {result.weakSpots.map((spot) => <Badge key={spot} tone="good">{WEAK_SPOT_LABELS[spot]}</Badge>)}
         </div>
       </div>
@@ -160,4 +170,19 @@ function TrendBars({ trend }: { trend: KeywordDto["trend"] }) {
 function formatAge(years: number | null) {
   if (years === null) return "—";
   return years < 1 ? "<1 yr" : `${Math.floor(years)} yr`;
+}
+
+const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+
+function formatCompact(value: number | null) {
+  return value === null ? "—" : compact.format(value);
+}
+
+/** Rank of the result with the lowest known authority, or null when none is known. */
+function lowestAuthorityRank(results: readonly SerpResultDto[]) {
+  let lowest: SerpResultDto | null = null;
+  for (const result of results) {
+    if (result.authority !== null && (lowest === null || result.authority < lowest.authority!)) lowest = result;
+  }
+  return lowest?.rank ?? null;
 }

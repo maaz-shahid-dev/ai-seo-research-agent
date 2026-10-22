@@ -8,6 +8,7 @@ import { tabPanelProps, Tabs } from "@/components/ui/Tabs";
 
 import { ContentGapView } from "./ContentGapView";
 import { KeywordTable } from "./KeywordTable";
+import { NicheVerdictCard } from "./NicheVerdictCard";
 import { SerpPanel } from "./SerpPanel";
 
 type ResultTab = "keywords" | "questions" | "content-gap";
@@ -28,6 +29,13 @@ export function ResearchResults({ runId, project, onProjectUpdate, keywords, has
   const [tab, setTab] = useState<ResultTab>("keywords");
   const [selected, setSelected] = useState<KeywordDto | null>(null);
   const questions = useMemo(() => keywords.filter((item) => isQuestionKeyword(item.keyword)), [keywords]);
+  // The searched topic itself, or its biggest keyword when the provider didn't return it.
+  const seed = useMemo(
+    () => keywords.find((item) => item.source === "seed")
+      ?? [...keywords].sort((a, b) => (b.searchVolume ?? 0) - (a.searchVolume ?? 0))[0]
+      ?? null,
+    [keywords],
+  );
 
   const table = (rows: KeywordDto[], emptyMessage?: string) => (
     <KeywordTable
@@ -42,6 +50,7 @@ export function ResearchResults({ runId, project, onProjectUpdate, keywords, has
 
   return (
     <div className="space-y-3">
+      {seed ? <NicheVerdictCard runId={runId} keyword={seed} /> : null}
       <Tabs
         label={TABS_LABEL}
         selected={tab}

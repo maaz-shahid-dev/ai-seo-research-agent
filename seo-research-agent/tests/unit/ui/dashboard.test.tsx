@@ -87,6 +87,10 @@ const completedDetail: ResearchDetailResponse = {
   },
 };
 
+const emptySerp = {
+  keywordId: 1, status: "completed", nicheScore: 50, hasAiOverview: false, errorMessage: null, fetchedAt: null, results: [],
+};
+
 type Handler = (url: URL, init: RequestInit) => Response | Promise<Response>;
 
 /** Routes fetch calls by "METHOD /path"; unmatched calls fail the test loudly. */
@@ -96,6 +100,8 @@ function mockApi(routes: Record<string, Handler | Handler[]>) {
     const url = new URL(String(input), "http://localhost");
     const key = `${init.method ?? "GET"} ${url.pathname}`;
     const queue = queues.get(key);
+    // The niche verdict card asks for the seed keyword's SERP; these tests don't assert on it.
+    if (!queue?.length && /\/serp\/\d+$/.test(url.pathname)) return json({ serp: emptySerp })();
     if (!queue?.length) throw new Error(`Unexpected request: ${key}`);
     // The last handler repeats so polling can continue indefinitely.
     const handler = queue.length > 1 ? queue.shift()! : queue[0]!;

@@ -138,7 +138,10 @@ describe("SERP panel", () => {
     expect(within(list).getByText("Low authority")).toBeTruthy();
     expect(within(list).getByText("<1 yr")).toBeTruthy();
     expect(screen.getByText("2 of 3 are weak spots")).toBeTruthy();
-    expect(within(screen.getByRole("dialog")).getByText("72")).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText("72/100")).toBeTruthy();
+    expect(within(screen.getByRole("dialog")).getByText("Maybe — still possible")).toBeTruthy();
+    expect(within(list).getByText("Dedicated site")).toBeTruthy();
+    expect(within(list).getByText("Lowest authority")).toBeTruthy();
   });
 
   it("never renders unsafe provider URLs as links", async () => {
@@ -258,5 +261,37 @@ describe("SERP panel errors", () => {
 
     expect((await screen.findByRole("alert")).textContent).toBe("Research not found.");
     expect(screen.queryByText("Analyzing the top 10…")).toBeNull();
+  });
+});
+
+describe("niche verdict card", () => {
+  it("shows the verdict, authority spread, AI Overview and revenue for the seed keyword", async () => {
+    const easySerp = {
+      ...serp,
+      results: [
+        { ...serp.results[1]!, rank: 1, authority: 5 },
+        { ...serp.results[1]!, rank: 2, authority: 12, isHomepage: false },
+        { ...serp.results[1]!, rank: 3, authority: 18, isHomepage: false },
+        { ...serp.results[0]!, rank: 4 },
+      ],
+    };
+    mockApi({ [`POST /api/research/${RUN_ID}/serp/1`]: [() => ({ serp: easySerp })] });
+    render(
+      <ResearchResults
+        runId={RUN_ID}
+        project={project}
+        onProjectUpdate={vi.fn()}
+        keywords={[keyword(1, "running shoes", { source: "seed", searchVolume: 100_000 })]}
+        hasMore={false}
+        loadingMore={false}
+        onLoadMore={vi.fn()}
+      />,
+    );
+
+    const card = await screen.findByRole("region", { name: /Is “running shoes” easy to rank for\?/ });
+    expect(await within(card).findByText("Ideal — low-hanging fruit")).toBeTruthy();
+    expect(card.textContent).toContain("3 sites under authority 20 in the top 10, 1 dedicated site ranking");
+    expect(within(card).getByText("Yes")).toBeTruthy();
+    expect(card.textContent).toContain("$784");
   });
 });
