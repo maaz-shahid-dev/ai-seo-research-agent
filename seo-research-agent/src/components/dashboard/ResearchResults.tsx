@@ -1,5 +1,7 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
 import { slugify } from "@/features/research/blueprint";
@@ -12,20 +14,30 @@ import { tabPanelProps, Tabs } from "@/components/ui/Tabs";
 import { useStoredChecklist } from "@/hooks/useStoredChecklist";
 import { pick, readParam, writeParams } from "@/lib/url-state";
 
-import { ClustersView } from "./ClustersView";
-import { ContentGapView } from "./ContentGapView";
-import { ContentPlanView } from "./ContentPlanView";
-import { CoverageView } from "./CoverageView";
 import { InsightsCard } from "./InsightsCard";
-import { IskillsView } from "./IskillsView";
 import { KeywordTable } from "./KeywordTable";
-import { KgrView } from "./KgrView";
-import { LaunchPlanView } from "./LaunchPlanView";
 import { NicheTypeCard } from "./NicheTypeCard";
 import { NicheVerdictCard } from "./NicheVerdictCard";
 import { OverviewStats } from "./OverviewStats";
-import { SerpPanel } from "./SerpPanel";
 import { useSerpAnalysis } from "./useSerpAnalysis";
+
+// Tabs beyond the overview load on first open, keeping the initial report light.
+function TabLoading() {
+  return (
+    <p className="flex items-center gap-2 py-6 text-sm text-slate-600" role="status">
+      <Loader2 className="h-4 w-4 animate-spin text-indigo-600" aria-hidden="true" /> Loading…
+    </p>
+  );
+}
+const loading = () => <TabLoading />;
+const ClustersView = dynamic(() => import("./ClustersView").then((module) => module.ClustersView), { loading });
+const ContentGapView = dynamic(() => import("./ContentGapView").then((module) => module.ContentGapView), { loading });
+const ContentPlanView = dynamic(() => import("./ContentPlanView").then((module) => module.ContentPlanView), { loading });
+const CoverageView = dynamic(() => import("./CoverageView").then((module) => module.CoverageView), { loading });
+const IskillsView = dynamic(() => import("./IskillsView").then((module) => module.IskillsView), { loading });
+const KgrView = dynamic(() => import("./KgrView").then((module) => module.KgrView), { loading });
+const LaunchPlanView = dynamic(() => import("./LaunchPlanView").then((module) => module.LaunchPlanView), { loading });
+const SerpPanel = dynamic(() => import("./SerpPanel").then((module) => module.SerpPanel), { loading });
 
 export const RESULT_TABS = ["overview", "keywords", "coverage", "clusters", "questions", "plan", "launch", "kgr", "iskills", "content-gap"] as const;
 type ResultTab = (typeof RESULT_TABS)[number];

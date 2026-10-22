@@ -7,7 +7,7 @@ type SparklineProps = {
 
 /** Tiny trend line. SVG attributes only, so it is safe under the strict CSP. */
 export function Sparkline({ values, label, width = 64, height = 20 }: SparklineProps) {
-  if (values.length < 2) return <span className="text-slate-400">—</span>;
+  if (values.length < 2) return <span className="text-slate-500">—</span>;
 
   const max = Math.max(...values);
   const min = Math.min(...values);

@@ -77,7 +77,7 @@ export function CommandPalette({ commands, onClose }: { commands: readonly Comma
             const heading = command.group !== results[index - 1]?.group ? command.group : null;
             return (
               <li key={command.id} role="presentation">
-                {heading ? <p role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{heading}</p> : null}
+                {heading ? <p role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{heading}</p> : null}
                 <div
                   id={`${listId}-${command.id}`}
                   role="option"
@@ -92,7 +92,7 @@ export function CommandPalette({ commands, onClose }: { commands: readonly Comma
             );
           })}
         </ul>
-        <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">↑ ↓ to move · Enter to open · Esc to close</p>
+        <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">↑ ↓ to move · Enter to open · Esc to close</p>
       </div>
     </div>
   );

@@ -106,7 +106,7 @@ export function KgrView({ runId, keywords }: { runId: string; keywords: KeywordD
                   <td className="px-3 py-2 text-right tabular-nums">{formatNumber(allintitle)}</td>
                   <td className="px-3 py-2 text-right font-semibold tabular-nums">{ratio === null ? "—" : ratio.toFixed(2)}</td>
                   <td className="py-2 pl-3">
-                    {ratio === null ? <span className="text-xs text-slate-400">Not checked</span> : (
+                    {ratio === null ? <span className="text-xs text-slate-500">Not checked</span> : (
                       <Badge tone={RATINGS[kgrRating(ratio)].tone}>{RATINGS[kgrRating(ratio)].label}</Badge>
                     )}
                   </td>

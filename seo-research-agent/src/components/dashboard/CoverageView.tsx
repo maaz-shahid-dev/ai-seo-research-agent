@@ -76,23 +76,16 @@ function GroupCard({ group, onSelect }: { group: CoverageGroup<KeywordDto>; onSe
         <Badge tone="neutral">{group.keywords.length}</Badge>
         {group.easyCount > 0 ? <Badge tone="good">{group.easyCount} easy</Badge> : null}
         <span className="text-xs text-slate-500">{group.description} · {formatNumber(group.totalVolume)} searches/mo</span>
-        <span className="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              void copy();
-            }}
-            aria-label={`Copy ${group.label} keywords`}
-            title="Copy keywords"
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-          >
-            {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
-          </button>
-          <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" aria-hidden="true" />
-        </span>
+        <ChevronDown className="ml-auto h-4 w-4 text-slate-400 transition group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <ul className="grid gap-2 border-t border-slate-100 p-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Outside <summary>: a button inside it would be a control nested in a control. */}
+      <div className="flex justify-end border-t border-slate-100 px-3 pt-2">
+        <Button variant="ghost" size="sm" onClick={() => void copy()} aria-label={`Copy ${group.label} keywords`}>
+          {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <ul className="grid gap-2 p-3 pt-1 sm:grid-cols-2 xl:grid-cols-3">
         {group.keywords.map((keyword) => (
           <li key={keyword.id}>
             <button

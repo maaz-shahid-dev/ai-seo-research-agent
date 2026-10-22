@@ -216,7 +216,7 @@ function SortHeader({ label, sortKey, sort, onSort }: {
 }
 
 function Dash() {
-  return <span className="text-slate-400">—</span>;
+  return <span className="text-slate-500">—</span>;
 }
 
 /** Sorts nulls last in either direction. */

@@ -195,7 +195,7 @@ export function DashboardClient({ user, initialProjects, demo = false, initialSe
     <div className="space-y-5">
       {activeProjects.length > 1 ? (
         <div className="px-3">
-          <label htmlFor="project" className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Project</label>
+          <label htmlFor="project" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Project</label>
           <select
             id="project"
             value={project?.id ?? ""}

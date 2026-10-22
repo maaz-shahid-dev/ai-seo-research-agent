@@ -12,7 +12,7 @@ const STATUS_ICON: Record<CheckStatus, { icon: typeof CheckCircle2; className: s
   pass: { icon: CheckCircle2, className: "text-emerald-600", label: "Pass" },
   warn: { icon: TriangleAlert, className: "text-amber-500", label: "Caution" },
   fail: { icon: XCircle, className: "text-rose-600", label: "Fail" },
-  unknown: { icon: CircleHelp, className: "text-slate-400", label: "Not checked yet" },
+  unknown: { icon: CircleHelp, className: "text-slate-500", label: "Not checked yet" },
 };
 
 const VERDICT_COPY = {

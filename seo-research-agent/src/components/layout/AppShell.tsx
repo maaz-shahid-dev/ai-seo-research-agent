@@ -5,6 +5,7 @@ import { useCallback, useState, type ReactNode } from "react";
 
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
+import type { AppView } from "@/lib/app-views";
 import type { Command } from "@/lib/commands";
 import { toggleTheme } from "@/lib/theme";
 
@@ -12,8 +13,7 @@ import { CommandPalette, useCommandPaletteShortcut } from "./CommandPalette";
 
 import { ThemeToggle } from "./ThemeToggle";
 
-export const APP_VIEWS = ["research", "ideas", "history", "projects", "settings"] as const;
-export type AppView = (typeof APP_VIEWS)[number];
+export type { AppView } from "@/lib/app-views";
 
 const NAV_ITEMS: ReadonlyArray<{ view: AppView; label: string; icon: typeof Search }> = [
   { view: "research", label: "Research", icon: Search },
@@ -165,7 +165,7 @@ function SidebarContent({ view, onNavigate, user, demo, onSignOut, onOpenPalette
         <button
           type="button"
           onClick={onOpenPalette}
-          aria-label="Quick actions"
+          aria-label={collapsed ? "Quick actions" : undefined}
           aria-keyshortcuts="Control+K Meta+K"
           title="Quick actions (Ctrl+K)"
           className={`flex w-full items-center gap-2 rounded-lg border border-slate-200 py-1.5 text-sm text-slate-500 hover:border-slate-300 hover:text-slate-900 ${collapsed ? "justify-center px-0" : "px-3"}`}
@@ -174,7 +174,7 @@ function SidebarContent({ view, onNavigate, user, demo, onSignOut, onOpenPalette
           {collapsed ? null : (
             <>
               <span className="flex-1 text-left">Quick actions</span>
-              <kbd className="rounded border border-slate-200 px-1.5 text-[10px] font-medium text-slate-400">Ctrl K</kbd>
+              <kbd aria-hidden="true" className="rounded border border-slate-200 px-1.5 text-[10px] font-medium text-slate-500">Ctrl K</kbd>
             </>
           )}
         </button>

@@ -194,7 +194,7 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
                       onClick={() => setConfirmingId(run.id)}
                       aria-label={`Delete “${run.query}”`}
                       title="Delete"
-                      className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                      className="rounded-lg p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-700"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>

@@ -77,10 +77,10 @@ function ContentGapReport({ runId, targetDomain }: { runId: string; targetDomain
                 <td className="px-4 py-2.5 font-medium text-slate-900">{item.keyword}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{formatNumber(item.searchVolume)}</td>
                 <td className="px-4 py-2.5 text-right">
-                  {item.difficulty === null ? <span className="text-slate-400">—</span> : <Badge tone={difficultyTone(item.difficulty)}>{item.difficulty}</Badge>}
+                  {item.difficulty === null ? <span className="text-slate-500">—</span> : <Badge tone={difficultyTone(item.difficulty)}>{item.difficulty}</Badge>}
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrencyMicros(item.cpcMicros)}</td>
-                <td className="px-4 py-2.5 text-slate-600">{item.competitorDomain} <span className="text-slate-400">#{item.competitorRank}</span></td>
+                <td className="px-4 py-2.5 text-slate-600">{item.competitorDomain} <span className="text-slate-500">#{item.competitorRank}</span></td>
               </tr>
             ))}
           </tbody>

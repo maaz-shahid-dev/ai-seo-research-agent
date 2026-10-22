@@ -143,7 +143,7 @@ export function ExportActions({ count, onCopy, onCsv, onJson }: { count: number;
 }
 
 export function OpportunityCell({ value }: { value: Opportunity | undefined }) {
-  if (!value) return <span className="text-slate-400">—</span>;
+  if (!value) return <span className="text-slate-500">—</span>;
   return (
     <div className="flex items-center justify-end gap-2">
       <progress

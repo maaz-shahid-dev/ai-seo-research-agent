@@ -68,7 +68,7 @@ export function NicheVerdict({ keyword, serp, error, showRevenue = true, rpmUsd 
             {dedicated > 0 ? `, ${dedicated} dedicated ${dedicated === 1 ? "site" : "sites"} ranking` : ""}
             {keyword.searchVolume !== null ? `. ${formatNumber(keyword.searchVolume)} searches a month.` : "."}
           </p>
-          <p className="mt-1 text-xs text-slate-400">Niche score: easier keywords and weaker page-1 sites score higher.</p>
+          <p className="mt-1 text-xs text-slate-500">Niche score: easier keywords and weaker page-1 sites score higher.</p>
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export function NicheVerdict({ keyword, serp, error, showRevenue = true, rpmUsd 
               <div key={estimate.rank} className="rounded-lg border border-slate-200 px-3 py-2 text-center">
                 <p className="text-xs text-slate-500">Rank #{estimate.rank}</p>
                 <p className="text-base font-semibold text-emerald-700">{usd.format(estimate.monthlyUsd)}<span className="text-xs font-normal text-slate-500">/mo</span></p>
-                <p className="text-[11px] text-slate-400">{usd.format(estimate.lowUsd)} – {usd.format(estimate.highUsd)}</p>
+                <p className="text-[11px] text-slate-500">{usd.format(estimate.lowUsd)} – {usd.format(estimate.highUsd)}</p>
               </div>
             ))}
           </div>

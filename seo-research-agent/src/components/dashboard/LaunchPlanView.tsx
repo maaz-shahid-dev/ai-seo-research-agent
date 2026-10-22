@@ -71,7 +71,7 @@ export function LaunchPlanView({ runId, seed, keywords, nicheType }: LaunchPlanV
                   className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-slate-300 accent-emerald-600"
                 />
                 <label htmlFor={id} className="cursor-pointer">
-                  <span className={`block text-sm font-medium ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{index + 1}. {step.title}</span>
+                  <span className={`block text-sm font-medium ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>{index + 1}. {step.title}</span>
                   <span className="block text-sm text-slate-600">{step.detail}</span>
                 </label>
               </li>
@@ -95,10 +95,10 @@ export function LaunchPlanView({ runId, seed, keywords, nicheType }: LaunchPlanV
         <div className="grid gap-3 md:grid-cols-2">
           {blueprint.silos.map((silo) => (
             <div key={silo.name} className="rounded-lg border border-slate-200 p-3">
-              <p className="text-sm font-semibold text-slate-900">{silo.name} <span className="font-normal text-slate-400">{silo.path}</span></p>
+              <p className="text-sm font-semibold text-slate-900">{silo.name} <span className="font-normal text-slate-500">{silo.path}</span></p>
               <ul className="mt-2 space-y-1 text-sm text-slate-600">
                 {silo.articles.slice(0, 6).map((article) => <li key={article.url} className="truncate">{article.url}</li>)}
-                {silo.articles.length > 6 ? <li className="text-xs text-slate-400">+{silo.articles.length - 6} more</li> : null}
+                {silo.articles.length > 6 ? <li className="text-xs text-slate-500">+{silo.articles.length - 6} more</li> : null}
               </ul>
             </div>
           ))}
@@ -170,7 +170,7 @@ function BriefItem({ brief }: { brief: ContentBrief }) {
                   <li key={question} className="flex gap-1.5"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" aria-hidden="true" />{question}</li>
                 ))}
               </ul>
-            ) : <p className="text-slate-400">—</p>}
+            ) : <p className="text-slate-500">—</p>}
           </BriefBlock>
           <BriefBlock title="Internal links"><p className="break-words text-slate-700">{brief.internalLinks.join(" · ") || "—"}</p></BriefBlock>
         </div>

@@ -176,6 +176,12 @@ The 10 best opportunities (volume × easiness) are analyzed automatically after 
 - **Keywords tab**: sort by opportunity, filter by text, intent, KD, tier and favorites (stars are kept per search in the browser), and copy or download exactly the shown rows as CSV or JSON.
 - **Coverage tab** (`src/features/research/coverage-groups.ts`): the collected keywords grouped into questions, modifiers, words before and after the topic, and vertical packs (SaaS, Tools, Apps & APK, Info, Affiliate, E-commerce). Only real keywords are listed; packs match the words a keyword adds to the topic.
 - **Theme**: light or dark, switched in the sidebar and stored in a cookie so the server renders it without a flash. Dark mode swaps the color palette in `globals.css`.
+- **Views in the URL**: the screen, open search, result tab and keyword filters are kept in the query string, so a refresh or shared link reopens the same view (`src/lib/url-state.ts`; the server validates `view` and `run`).
+- **Clusters, SERP charts, compare**: a Clusters tab with a drawer per cluster; the SERP panel shows the DR spread and kinds of sites; History compares two finished searches (only in A, only in B, in both).
+- **Daily niches**: star or dismiss ideas (saved per user in `niche_idea_reactions`), a Favorites view across days, and a day picker (`GET /api/niche-ideas?date=` / `?view=favorites`, `PUT /api/niche-ideas/{id}/reaction`).
+- **Reports**: `/reports/{runId}` is a printable report (print or save as PDF) with a Markdown download.
+- **Command palette**: Ctrl/Cmd+K jumps to screens, recent searches and tabs, or switches the theme.
+- **Settings**: name, default country, theme and table density, saved to the account (`GET/PATCH /api/me/settings`) and mirrored in cookies so pages render them without a flash.
 - **Sidebar**: on desktop it collapses to an icon rail, automatically below 1280px or with the toggle (the choice is remembered). Phones use a drawer.
 
 DataForSEO endpoints used: Labs keyword ideas, SERP organic live advanced, Backlinks bulk ranks (0–100 scale), Domain Analytics WHOIS overview (age, traffic, backlinks, referring domains) and Labs domain intersection, SERP Google Autocomplete and Labs keyword overview. Site ranking-keyword counts come from the WHOIS overview's organic count. Manual SERP lookups are limited to 60 per user per hour, content gaps to 10, and KGR batches to 20.

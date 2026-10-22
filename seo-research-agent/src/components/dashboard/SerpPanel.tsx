@@ -105,7 +105,7 @@ function SerpRow({ result, isLowest }: { result: SerpResultDto; isLowest: boolea
   const easy = result.authority !== null && result.authority <= ISKILLS_BEATABLE_AUTHORITY_MAX;
   return (
     <li className={`flex gap-3 p-3 ${easy ? "bg-emerald-50/60" : ""}`}>
-      <span className="w-6 shrink-0 pt-0.5 text-right text-sm font-semibold tabular-nums text-slate-400">{result.rank}</span>
+      <span className="w-6 shrink-0 pt-0.5 text-right text-sm font-semibold tabular-nums text-slate-500">{result.rank}</span>
       <div className="min-w-0 flex-1">
         {href ? (
           <a href={href} target="_blank" rel="noopener noreferrer" className="group inline-flex max-w-full items-center gap-1 text-sm font-medium text-slate-900 hover:text-indigo-700">
@@ -162,7 +162,7 @@ function TrendBars({ trend }: { trend: KeywordDto["trend"] }) {
           );
         })}
       </svg>
-      <div className="mt-1 flex text-[10px] text-slate-400">
+      <div className="mt-1 flex text-[10px] text-slate-500">
         {points.map((point) => (
           <span key={point.month} className="flex-1 text-center">{MONTH_LABEL.format(new Date(`${point.month}-01T00:00:00Z`))}</span>
         ))}

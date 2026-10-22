@@ -34,7 +34,7 @@ export function ContentPlanView({ seed, keywords }: { seed: string; keywords: re
           <li key={cluster.topic}>
             <details className="group rounded-xl border border-slate-200 bg-white">
               <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
-                <span className="w-6 shrink-0 text-right text-sm font-semibold tabular-nums text-slate-400">{index + 1}</span>
+                <span className="w-6 shrink-0 text-right text-sm font-semibold tabular-nums text-slate-500">{index + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-900">{sentenceCase(cluster.mainKeyword)}</p>
                   <p className="text-xs text-slate-500">

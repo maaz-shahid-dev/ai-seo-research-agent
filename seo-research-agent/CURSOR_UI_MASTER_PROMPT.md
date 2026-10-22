@@ -82,49 +82,51 @@ App root: `ai-seo-research-agent/seo-research-agent/`
 5. Commit with a clear message, one feature per commit.
 6. Report: files changed, how to try it, what is next. Then wait for "next".
 
-## 5. Remaining work
+## 5. Phases
 
-### Phase 1: Design consistency
+Phases 1–10 below are done (October 2026). Keep them as the record of what each screen must do; add new phases after Phase 10.
+
+### Phase 1: Design consistency (done)
 - Add shared `Card`, `StatCard`, `EmptyState` and `ErrorState` to `src/components/ui` and use them everywhere the same pattern is repeated today.
 - Unify spacing, heading sizes and table styles across all tabs and screens.
 - **Done when:** every screen uses the shared pieces and looks consistent in light and dark.
 
-### Phase 2: Shareable keyword views
+### Phase 2: Shareable keyword views (done)
 - Store keyword table filters and sort in the URL so a view survives refresh and can be shared.
 - **Done when:** reloading the page keeps the exact filtered view.
 
-### Phase 3: Clusters view
+### Phase 3: Clusters view (done)
 - New "Clusters" section built from the existing content plan: cards with size, total volume, average KD and best keyword.
 - Clicking a cluster opens a drawer listing its keywords; clicking a keyword opens the SERP panel.
 - **Done when:** clusters match the content plan data and work by keyboard.
 
-### Phase 4: SERP insights
+### Phase 4: SERP insights (done)
 - In the SERP panel, add an authority (DR) distribution chart and a content-type breakdown, drawn with plain SVG (no chart library).
 - Highlight results with DR 20 or less.
 - **Done when:** both charts render for any analyzed keyword, with text alternatives.
 
-### Phase 5: Daily niches, part 2
+### Phase 5: Daily niches, part 2 (done)
 - Favorite and dismiss on each idea, a Favorites filter, and past days by date.
 - Add the needed API and repository functions, scoped to the user.
 - **Done when:** favorites persist across devices and changing the date shows that day's ideas.
 
-### Phase 6: Compare runs
+### Phase 6: Compare runs (done)
 - In History, select two searches and compare them: keywords only in A, only in B, and in both, with volume and KD.
 - **Done when:** the comparison is correct for runs of different sizes.
 
-### Phase 7: Reports
+### Phase 7: Reports (done)
 - A print-friendly report page for a search (summary, top opportunities, coverage, plan), plus Markdown export.
 - **Done when:** printing gives a clean document and exports contain exactly what is shown.
 
-### Phase 8: Command palette
+### Phase 8: Command palette (done)
 - Ctrl/Cmd+K opens a palette to jump to screens, recent searches and tabs.
 - **Done when:** it is fully usable by keyboard and screen reader.
 
-### Phase 9: Settings
+### Phase 9: Settings (done)
 - Profile, default country, theme and table density. Save on the server per user.
 - **Done when:** preferences apply across the app and devices.
 
-### Phase 10: Quality pass
+### Phase 10: Quality pass (done)
 - Accessibility: axe checks in Playwright on every main screen, visible focus, reduced motion.
 - Performance: lazy-load heavy tabs; Lighthouse Performance 90+, Accessibility 95+, Best Practices 95+ on Overview and Keywords.
 - **Done when:** no critical axe issues and budgets are met.

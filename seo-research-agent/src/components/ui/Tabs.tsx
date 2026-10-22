@@ -50,7 +50,7 @@ export function Tabs<T extends string>({ label, tabs, selected, onSelect }: Tabs
             }`}
           >
             {tab.label}
-            {tab.count !== undefined ? <> <span className={`ml-1 text-xs ${active ? "text-on-accent/80" : "text-slate-400"}`}>{tab.count}</span></> : null}
+            {tab.count !== undefined ? <> <span className={`ml-1 text-xs ${active ? "text-on-accent/80" : "text-slate-500"}`}>{tab.count}</span></> : null}
           </button>
         );
       })}

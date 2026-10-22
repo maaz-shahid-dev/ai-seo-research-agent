@@ -23,7 +23,7 @@ export function ScoreRing({ value, label, tone }: { value: number; label: string
       </svg>
       <span className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-bold tabular-nums text-slate-950">{clamped}</span>
-        <span className="text-[10px] text-slate-400">/100</span>
+        <span className="text-[10px] text-slate-500">/100</span>
       </span>
     </div>
   );

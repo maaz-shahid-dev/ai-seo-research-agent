@@ -72,7 +72,7 @@ export function IdeaCard({ idea, onCheck, onReact, showDate }: {
 
 function IconButton({ label, pressed, onClick, children }: { label: string; pressed: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" aria-label={label} title={label} aria-pressed={pressed} onClick={onClick} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+    <button type="button" aria-label={label} title={label} aria-pressed={pressed} onClick={onClick} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
       {children}
     </button>
   );

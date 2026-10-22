@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { APP_VIEWS } from "@/components/layout/AppShell";
+import { APP_VIEWS } from "@/lib/app-views";
 import { WorkspaceSkeleton } from "@/components/dashboard/WorkspaceSkeleton";
 import { toProjectDto } from "@/features/projects/dto";
 import { researchRunIdSchema } from "@/features/research/schemas";

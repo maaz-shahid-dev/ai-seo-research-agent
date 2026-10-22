@@ -16,13 +16,13 @@ export function RecentSearches({ runs, selectedId, onSelect, onViewAll }: Recent
   return (
     <nav aria-label="Recent searches">
       <div className="flex items-center justify-between px-3 pb-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Recent searches</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Recent searches</p>
         {runs.length > 0 ? (
           <button type="button" onClick={onViewAll} className="text-[11px] font-semibold text-indigo-700 hover:underline">View all</button>
         ) : null}
       </div>
       {runs.length === 0 ? (
-        <p className="px-3 text-sm text-slate-400">No searches yet.</p>
+        <p className="px-3 text-sm text-slate-500">No searches yet.</p>
       ) : (
         <ul className="space-y-0.5">
           {runs.map((run) => {
@@ -46,7 +46,7 @@ export function RecentSearches({ runs, selectedId, onSelect, onViewAll }: Recent
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{run.query}</span>
-                    <span className="block text-[11px] text-slate-400">{formatRelativeTime(run.createdAt)}</span>
+                    <span className={`block text-[11px] ${selected ? "text-slate-600" : "text-slate-500"}`}>{formatRelativeTime(run.createdAt)}</span>
                   </span>
                   {isRunInProgress(run) ? <span className="sr-only"> (running)</span> : null}
                   {failed ? <span className="sr-only"> (failed)</span> : null}

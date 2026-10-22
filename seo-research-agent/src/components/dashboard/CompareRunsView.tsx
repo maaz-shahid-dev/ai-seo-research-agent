@@ -129,7 +129,7 @@ function CompareTable({ rows, section }: { rows: ComparedKeyword[]; section: Sec
 }
 
 function Metrics({ side }: { side: KeywordSide | null }) {
-  if (!side) return <span className="text-slate-400">—</span>;
+  if (!side) return <span className="text-slate-500">—</span>;
   return (
     <span className="inline-flex items-center gap-2">
       <span className="tabular-nums">{formatNumber(side.searchVolume)}</span>
