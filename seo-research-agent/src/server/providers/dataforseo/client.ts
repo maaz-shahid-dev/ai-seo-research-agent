@@ -13,14 +13,19 @@ import {
   invalidTimeoutForProvider,
 } from "@/server/providers/request-context";
 import {
+  autocompleteRequestSchema,
   domainIntersectionRequestSchema,
+  keywordOverviewRequestSchema,
   domainMetricsRequestSchema,
   keywordIdeasRequestSchema,
   normalizeDomain,
   normalizeLinkHttpUrl,
   organicSerpRequestSchema,
   searchIntentSchema,
+  type AutocompleteRequest,
   type DataForSeoResultOutcome,
+  type KeywordOverviewRequest,
+  type NormalizedKeywordIdea,
   type DomainIntersectionRequest,
   type DomainIntersectionResult,
   type DomainMetricsRequest,
@@ -33,7 +38,9 @@ import {
   type ProviderRequestOptions,
 } from "@/server/providers/types";
 import {
+  autocompleteResultSchema,
   domainIntersectionResultSchema,
+  keywordOverviewResultSchema,
   domainRanksResultSchema,
   genericResponseSchema,
   keywordIdeasResultSchema,
@@ -49,6 +56,8 @@ const ORGANIC_SERP_PATH = "/v3/serp/google/organic/live/advanced";
 const DOMAIN_RANKS_PATH = "/v3/backlinks/bulk_ranks/live";
 const WHOIS_OVERVIEW_PATH = "/v3/domain_analytics/whois/overview/live";
 const DOMAIN_INTERSECTION_PATH = "/v3/dataforseo_labs/google/domain_intersection/live";
+const AUTOCOMPLETE_PATH = "/v3/serp/google/autocomplete/live/advanced";
+const KEYWORD_OVERVIEW_PATH = "/v3/dataforseo_labs/google/keyword_overview/live";
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const SUCCESS_STATUS = 20_000;
 const NO_RESULTS_STATUS = 40_102;
@@ -101,6 +110,16 @@ export interface DataForSeoClient {
     request: DomainIntersectionRequest,
     options?: ProviderRequestOptions,
   ): Promise<DomainIntersectionResult>;
+  /** Google Autocomplete suggestions for a partial query. */
+  getAutocomplete(
+    request: AutocompleteRequest,
+    options?: ProviderRequestOptions,
+  ): Promise<{ cost: number | null; suggestions: string[] }>;
+  /** Volume, CPC, competition, trend, difficulty and intent for known keywords. */
+  getKeywordOverview(
+    request: KeywordOverviewRequest,
+    options?: ProviderRequestOptions,
+  ): Promise<{ cost: number | null; items: NormalizedKeywordIdea[] }>;
 }
 
 export function createDataForSeoClient(options: DataForSeoClientOptions = {}): DataForSeoClient {
@@ -248,26 +267,7 @@ export function createDataForSeoClient(options: DataForSeoClientOptions = {}): D
         taskId: task.id,
         cost: task.cost ?? null,
         totalCount: result.total_count ?? null,
-        items: (result.items ?? []).map((item) => {
-          const parsedIntent = searchIntentSchema.safeParse(
-            item.search_intent_info?.main_intent,
-          );
-
-          return {
-            keyword: item.keyword,
-            searchVolume: item.keyword_info?.search_volume ?? null,
-            cpc: item.keyword_info?.cpc ?? null,
-            competition: item.keyword_info?.competition ?? null,
-            competitionLevel: cleanOptionalText(item.keyword_info?.competition_level),
-            keywordDifficulty: item.keyword_properties?.keyword_difficulty ?? null,
-            intent: parsedIntent.success ? parsedIntent.data : null,
-            monthlySearches: (item.keyword_info?.monthly_searches ?? []).map((monthly) => ({
-              year: monthly.year,
-              month: monthly.month,
-              searchVolume: monthly.search_volume ?? null,
-            })),
-          };
-        }),
+        items: (result.items ?? []).map(normalizeKeywordItem),
         ...outcomeMetadata(outcome),
       };
     },
@@ -360,7 +360,7 @@ export function createDataForSeoClient(options: DataForSeoClientOptions = {}): D
 
       const byDomain = new Map<string, NormalizedDomainMetrics>(
         domains.map((domain) => [domain, {
-          domain, authority: null, backlinks: null, referringDomains: null, monthlyTraffic: null, registeredAt: null,
+          domain, authority: null, backlinks: null, referringDomains: null, monthlyTraffic: null, rankingKeywords: null, registeredAt: null,
         }]),
       );
       for (const item of rankItems) {
@@ -375,6 +375,7 @@ export function createDataForSeoClient(options: DataForSeoClientOptions = {}): D
         entry.referringDomains = item.backlinks_info?.referring_domains ?? null;
         const traffic = item.metrics?.organic?.etv;
         entry.monthlyTraffic = traffic == null ? null : Math.round(traffic);
+        entry.rankingKeywords = item.metrics?.organic?.count ?? null;
       }
 
       return {
@@ -420,6 +421,68 @@ export function createDataForSeoClient(options: DataForSeoClientOptions = {}): D
         }),
       };
     },
+
+    async getAutocomplete(request, requestOptions = {}) {
+      const input = parseInput(autocompleteRequestSchema, request);
+      const response = await post(
+        AUTOCOMPLETE_PATH,
+        {
+          keyword: escapeDataForSeoKeyword(input.keyword),
+          location_code: input.locationCode,
+          language_code: input.languageCode,
+          client: "gws-wiz",
+        },
+        genericResponseSchema,
+        requestOptions,
+      );
+      const { task, outcome } = taskOutcome(response);
+      if (outcome === "empty") return { cost: task.cost ?? null, suggestions: [] };
+      const result = parseResult(autocompleteResultSchema, task.result?.[0], "DataForSEO did not include valid suggestions.");
+      return {
+        cost: task.cost ?? null,
+        suggestions: (result.items ?? []).flatMap((item) =>
+          item.type === "autocomplete" && item.suggestion ? [item.suggestion.trim()] : []),
+      };
+    },
+
+    async getKeywordOverview(request, requestOptions = {}) {
+      const input = parseInput(keywordOverviewRequestSchema, request);
+      const response = await post(
+        KEYWORD_OVERVIEW_PATH,
+        {
+          keywords: input.keywords.map(escapeDataForSeoKeyword),
+          location_code: input.locationCode,
+          language_code: input.languageCode,
+        },
+        genericResponseSchema,
+        requestOptions,
+      );
+      const { task, outcome } = taskOutcome(response);
+      if (outcome === "empty") return { cost: task.cost ?? null, items: [] };
+      const result = parseResult(keywordOverviewResultSchema, task.result?.[0], "DataForSEO did not include valid keyword data.");
+      return { cost: task.cost ?? null, items: (result.items ?? []).map(normalizeKeywordItem) };
+    },
+  };
+}
+
+type KeywordItem = NonNullable<z.output<typeof keywordIdeasResultSchema>["items"]>[number];
+
+/** Shared by keyword ideas and keyword overview, which return the same item shape. */
+function normalizeKeywordItem(item: KeywordItem): NormalizedKeywordIdea {
+  const parsedIntent = searchIntentSchema.safeParse(item.search_intent_info?.main_intent);
+  return {
+    keyword: item.keyword,
+    searchVolume: item.keyword_info?.search_volume ?? null,
+    cpc: item.keyword_info?.cpc ?? null,
+    competition: item.keyword_info?.competition ?? null,
+    competitionLevel: cleanOptionalText(item.keyword_info?.competition_level),
+    keywordDifficulty: item.keyword_properties?.keyword_difficulty ?? null,
+    intent: parsedIntent.success ? parsedIntent.data : null,
+    monthlySearches: (item.keyword_info?.monthly_searches ?? []).map((monthly) => ({
+      year: monthly.year,
+      month: monthly.month,
+      searchVolume: monthly.search_volume ?? null,
+    })),
   };
 }
 

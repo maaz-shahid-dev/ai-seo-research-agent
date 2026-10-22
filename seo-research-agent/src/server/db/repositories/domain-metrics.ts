@@ -13,6 +13,7 @@ export type DomainMetricsInput = {
   backlinks: number | null;
   referringDomains: number | null;
   monthlyTraffic: number | null;
+  rankingKeywords: number | null;
   registeredAt: string | null;
 };
 
@@ -45,6 +46,7 @@ export async function upsertDomainMetrics(
       backlinks: clampOrNull(item.backlinks, 0, Number.MAX_SAFE_INTEGER),
       referringDomains: clampOrNull(item.referringDomains, 0, 2_147_483_647),
       monthlyTraffic: clampOrNull(item.monthlyTraffic, 0, Number.MAX_SAFE_INTEGER),
+      rankingKeywords: clampOrNull(item.rankingKeywords, 0, Number.MAX_SAFE_INTEGER),
       registeredAt: item.registeredAt ? new Date(item.registeredAt) : null,
       fetchedAt: now,
       expiresAt,
@@ -56,6 +58,7 @@ export async function upsertDomainMetrics(
         backlinks: sql`excluded.backlinks`,
         referringDomains: sql`excluded.referring_domains`,
         monthlyTraffic: sql`excluded.monthly_traffic`,
+        rankingKeywords: sql`excluded.ranking_keywords`,
         registeredAt: sql`excluded.registered_at`,
         fetchedAt: sql`excluded.fetched_at`,
         expiresAt: sql`excluded.expires_at`,

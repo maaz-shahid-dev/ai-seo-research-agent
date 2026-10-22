@@ -20,6 +20,7 @@ export type {
   KeywordIdeasResult,
   DataForSeoPartialWarning,
   DataForSeoResultOutcome,
+  NicheIdea,
   NormalizedKeywordIdea,
   NormalizedOrganicResult,
   OrganicSerpRequest,

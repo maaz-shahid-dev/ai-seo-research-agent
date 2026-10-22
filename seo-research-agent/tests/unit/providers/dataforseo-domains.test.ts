@@ -36,7 +36,7 @@ describe("DataForSEO domain metrics", () => {
         items: [{
           domain: "reddit.com",
           created_datetime: "2005-04-29 17:59:19 +00:00",
-          metrics: { organic: { etv: 980_000.6 } },
+          metrics: { organic: { etv: 980_000.6, count: 1_250_000 } },
           backlinks_info: { backlinks: 1_200_000, referring_domains: 45_000 },
         }],
       }, 0.1),
@@ -47,9 +47,9 @@ describe("DataForSEO domain metrics", () => {
 
     expect(result.cost).toBeCloseTo(0.12);
     expect(result.items).toEqual([
-      { domain: "reddit.com", authority: 91, backlinks: 1_200_000, referringDomains: 45_000, monthlyTraffic: 980_001, registeredAt: "2005-04-29T17:59:19.000Z" },
-      { domain: "tiny.blog", authority: 7, backlinks: null, referringDomains: null, monthlyTraffic: null, registeredAt: null },
-      { domain: "unseen.org", authority: null, backlinks: null, referringDomains: null, monthlyTraffic: null, registeredAt: null },
+      { domain: "reddit.com", authority: 91, backlinks: 1_200_000, referringDomains: 45_000, monthlyTraffic: 980_001, rankingKeywords: 1_250_000, registeredAt: "2005-04-29T17:59:19.000Z" },
+      { domain: "tiny.blog", authority: 7, backlinks: null, referringDomains: null, monthlyTraffic: null, rankingKeywords: null, registeredAt: null },
+      { domain: "unseen.org", authority: null, backlinks: null, referringDomains: null, monthlyTraffic: null, rankingKeywords: null, registeredAt: null },
     ]);
     expect(sentBody(fetchMock, "/v3/backlinks/bulk_ranks/live")).toEqual({
       targets: ["reddit.com", "tiny.blog", "unseen.org"],
@@ -141,5 +141,58 @@ describe("DataForSEO domain intersection", () => {
       language_code: "en",
       limit: 50,
     });
+  });
+});
+
+describe("DataForSEO autocomplete and keyword overview", () => {
+  it("returns Google Autocomplete suggestions only", async () => {
+    const path = "/v3/serp/google/autocomplete/live/advanced";
+    const fetchMock = routedFetch({
+      [path]: envelope({
+        items: [
+          { type: "autocomplete", suggestion: " running shoes for women " },
+          { type: "autocomplete", suggestion: null },
+          { type: "related", suggestion: "not a suggestion" },
+        ],
+      }, 0.002),
+    });
+    const client = createDataForSeoClient({ fetch: fetchMock, environment });
+
+    const result = await client.getAutocomplete({ keyword: "running shoes f", locationCode: 2_840, languageCode: "en" });
+
+    expect(result).toEqual({ cost: 0.002, suggestions: ["running shoes for women"] });
+    expect(sentBody(fetchMock, path)).toEqual({ keyword: "running shoes f", location_code: 2_840, language_code: "en", client: "gws-wiz" });
+  });
+
+  it("normalizes keyword overview items like keyword ideas", async () => {
+    const path = "/v3/dataforseo_labs/google/keyword_overview/live";
+    const client = createDataForSeoClient({
+      environment,
+      fetch: routedFetch({
+        [path]: envelope({
+          items: [{
+            keyword: "running shoes for women",
+            keyword_info: { search_volume: 74_000, cpc: 1.31, competition: 0.5, competition_level: "MEDIUM", monthly_searches: [{ year: 2026, month: 9, search_volume: 70_000 }] },
+            keyword_properties: { keyword_difficulty: 64 },
+            search_intent_info: { main_intent: "commercial" },
+          }],
+        }),
+      }),
+    });
+
+    const result = await client.getKeywordOverview({ keywords: ["running shoes for women"], locationCode: 2_840, languageCode: "en" });
+
+    expect(result.items).toEqual([{
+      keyword: "running shoes for women", searchVolume: 74_000, cpc: 1.31, competition: 0.5, competitionLevel: "MEDIUM",
+      keywordDifficulty: 64, intent: "commercial", monthlySearches: [{ year: 2026, month: 9, searchVolume: 70_000 }],
+    }]);
+  });
+
+  it("validates inputs before spending money", async () => {
+    const fetchMock = routedFetch({});
+    const client = createDataForSeoClient({ fetch: fetchMock, environment });
+    await expect(client.getAutocomplete({ keyword: " ", locationCode: 2_840, languageCode: "en" })).rejects.toMatchObject({ code: "PROVIDER_INVALID_INPUT" });
+    await expect(client.getKeywordOverview({ keywords: Array(701).fill("a"), locationCode: 2_840, languageCode: "en" })).rejects.toMatchObject({ code: "PROVIDER_INVALID_INPUT" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

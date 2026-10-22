@@ -117,6 +117,7 @@ export function toSerpAnalysisDto(
         domainAgeYears: site.domainAgeYears,
         backlinks: site.backlinks,
         referringDomains: site.referringDomains,
+        rankingKeywords: site.rankingKeywords,
         isHomepage: isHomepageUrl(url),
         siteType: classifySite(result.domain),
         weakSpots: findWeakSpots(site),

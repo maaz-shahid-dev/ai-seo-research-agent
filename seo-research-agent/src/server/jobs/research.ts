@@ -28,6 +28,8 @@ import { createDataForSeoClient } from "@/server/providers";
 
 import { inngest } from "./client";
 import { dispatchOutboxEventNow } from "./dispatch";
+import { expandWithAutocomplete } from "./autocomplete-expansion";
+import { toKeywordResultInput } from "./keyword-mapping";
 import { withProviderErrors } from "./provider-errors";
 import {
   ANALYSIS_REQUESTED_EVENT,
@@ -146,26 +148,33 @@ export const processResearch = inngest.createFunction(
         getDatabase(),
         ownerId,
         runId,
-        keywordResult.items.map((item) => ({
-          keyword: item.keyword,
+        keywordResult.items.map((item) => toKeywordResultInput(item, {
           source: normalizeKeyword(item.keyword) === normalizeKeyword(claimed.query) ? "seed" : "related",
-          provider: "dataforseo",
           providerRequestId: keywordResult.taskId,
-          retrievedAt: new Date(),
-          intent: item.intent ?? "unknown",
           countryCode: claimed.countryCode,
           languageCode: claimed.languageCode,
-          searchVolume: item.searchVolume,
-          cpcMicros: item.cpc === null ? null : Math.max(0, Math.round(item.cpc * 1_000_000)),
-          competition: item.competition,
-          difficulty: item.keywordDifficulty,
-          trend: item.monthlySearches.map((point) => ({
-            month: `${point.year}-${String(point.month).padStart(2, "0")}`,
-            volume: point.searchVolume ?? 0,
-          })),
         })),
       ),
     );
+
+    // Google Autocomplete "alphabet soup" adds long-tail ideas for content coverage.
+    // It is enrichment: if it fails, the run still completes with keyword ideas.
+    await step.run("expand-with-autocomplete", async () => {
+      try {
+        return await expandWithAutocomplete(createDataForSeoClient(), {
+          ownerId,
+          runId,
+          seed: claimed.query,
+          existingKeywords: keywordResult.items.map((item) => item.keyword),
+          locationCode: market.locationCode,
+          languageCode: market.languageCode,
+          countryCode: claimed.countryCode,
+        });
+      } catch (error) {
+        logger.warn({ error, ownerId, runId }, "Autocomplete expansion failed; continuing without it");
+        return { added: 0 };
+      }
+    });
 
     const stored = await step.run("record-store-progress", () =>
       updateResearchRunProgress(

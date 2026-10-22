@@ -114,7 +114,11 @@ const whoisItemSchema = z
     created_datetime: nullableString,
     metrics: z
       .object({
-        organic: z.object({ etv: nullableNonnegativeNumber }).passthrough().nullable().optional(),
+        organic: z
+          .object({ etv: nullableNonnegativeNumber, count: nullableNonnegativeInteger })
+          .passthrough()
+          .nullable()
+          .optional(),
       })
       .passthrough()
       .nullable()
@@ -164,3 +168,14 @@ export const domainIntersectionResultSchema = z
   .passthrough();
 
 export const genericResponseSchema = envelopeSchema(taskSchema(z.unknown()));
+
+const autocompleteItemSchema = z
+  .object({ type: z.string(), suggestion: nullableString })
+  .passthrough();
+
+export const autocompleteResultSchema = z
+  .object({ items: z.array(autocompleteItemSchema).nullable().optional() })
+  .passthrough();
+
+/** Keyword overview items share the keyword-ideas item shape. */
+export const keywordOverviewResultSchema = keywordIdeasResultSchema;

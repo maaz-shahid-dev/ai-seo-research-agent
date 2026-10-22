@@ -9,3 +9,4 @@ export * from "./users";
 export * from "./content-gaps";
 export * from "./domain-metrics";
 export * from "./serp-analyses";
+export * from "./niche-ideas";

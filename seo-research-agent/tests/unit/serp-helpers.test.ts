@@ -5,12 +5,12 @@ import { mergeGapKeywords, pickCompetitors, siteMetricsFor, type StoredDomainMet
 describe("site metrics", () => {
   const now = new Date("2026-10-22T00:00:00.000Z");
   const cache = new Map<string, StoredDomainMetrics>([
-    ["wikipedia.org", { domain: "wikipedia.org", authority: 97, backlinks: 10, referringDomains: 5, monthlyTraffic: 900, registeredAt: new Date("2001-01-13T00:00:00.000Z") }],
+    ["wikipedia.org", { domain: "wikipedia.org", authority: 97, backlinks: 10, referringDomains: 5, monthlyTraffic: 900, rankingKeywords: 4_000, registeredAt: new Date("2001-01-13T00:00:00.000Z") }],
   ]);
 
   it("joins subdomains to their registrable domain and computes age in years", () => {
     expect(siteMetricsFor("en.wikipedia.org", cache, now)).toEqual({
-      domain: "wikipedia.org", authority: 97, monthlyTraffic: 900, backlinks: 10, referringDomains: 5, domainAgeYears: 25.8,
+      domain: "wikipedia.org", authority: 97, monthlyTraffic: 900, backlinks: 10, referringDomains: 5, rankingKeywords: 4_000, domainAgeYears: 25.8,
     });
   });
 

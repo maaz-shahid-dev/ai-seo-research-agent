@@ -118,6 +118,8 @@ export interface NormalizedDomainMetrics {
   backlinks: number | null;
   referringDomains: number | null;
   monthlyTraffic: number | null;
+  /** Organic keywords the domain ranks for (SERPs containing it). */
+  rankingKeywords: number | null;
   registeredAt: string | null;
 }
 
@@ -288,3 +290,47 @@ export interface ResearchAnalysisResult {
   model: string;
   analysis: ResearchAnalysis;
 }
+
+export const nicheIdeasRequestSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    count: z.number().int().min(1).max(20),
+    /** Recent ideas to avoid repeating. */
+    avoid: z.array(z.string().max(120)).max(200).default([]),
+  })
+  .strict();
+
+export type NicheIdeasRequest = z.input<typeof nicheIdeasRequestSchema>;
+
+export const nicheIdeaSchema = z
+  .object({
+    niche: boundedText(80),
+    seedKeyword: boundedText(80),
+    problem: boundedText(200),
+    audience: boundedText(120),
+  })
+  .strict();
+
+export const nicheIdeasSchema = z.object({ ideas: z.array(nicheIdeaSchema).min(1).max(20) }).strict();
+
+export type NicheIdea = z.infer<typeof nicheIdeaSchema>;
+
+export const autocompleteRequestSchema = z
+  .object({
+    keyword: z.string().trim().min(1).max(200),
+    locationCode: z.number().int().positive(),
+    languageCode: z.string().trim().min(2).max(35),
+  })
+  .strict();
+
+export type AutocompleteRequest = z.input<typeof autocompleteRequestSchema>;
+
+export const keywordOverviewRequestSchema = z
+  .object({
+    keywords: z.array(z.string().trim().min(1).max(80)).min(1).max(700),
+    locationCode: z.number().int().positive(),
+    languageCode: z.string().trim().min(2).max(35),
+  })
+  .strict();
+
+export type KeywordOverviewRequest = z.input<typeof keywordOverviewRequestSchema>;

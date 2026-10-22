@@ -5,3 +5,4 @@ export { processContentGap } from "./content-gap";
 export { dispatchOutbox } from "./outbox";
 export { processResearch } from "./research";
 export { processSerpAnalysis } from "./serp";
+export { generateDailyNiches } from "./daily-niches";

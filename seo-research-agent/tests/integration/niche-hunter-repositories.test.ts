@@ -137,14 +137,14 @@ describe("Niche Hunter repositories", () => {
     it("upserts metrics, clamps bad values and reports stale domains", async () => {
       const now = new Date("2026-10-22T00:00:00.000Z");
       await upsertDomainMetrics(repo, [
-        { domain: "Reddit.com", authority: 140, backlinks: 5, referringDomains: 2, monthlyTraffic: -3, registeredAt: "2005-04-29T00:00:00.000Z" },
+        { domain: "Reddit.com", authority: 140, backlinks: 5, referringDomains: 2, monthlyTraffic: -3, rankingKeywords: 7, registeredAt: "2005-04-29T00:00:00.000Z" },
       ], now);
       await upsertDomainMetrics(repo, [
-        { domain: "reddit.com", authority: 91, backlinks: 10, referringDomains: 4, monthlyTraffic: 900, registeredAt: null },
+        { domain: "reddit.com", authority: 91, backlinks: 10, referringDomains: 4, monthlyTraffic: 900, rankingKeywords: 1_500, registeredAt: null },
       ], now);
 
       const [row] = await getDomainMetrics(repo, ["reddit.com"]);
-      expect(row).toMatchObject({ domain: "reddit.com", authority: 91, backlinks: 10, monthlyTraffic: 900 });
+      expect(row).toMatchObject({ domain: "reddit.com", authority: 91, backlinks: 10, monthlyTraffic: 900, rankingKeywords: 1_500 });
       expect(await findStaleDomains(repo, ["reddit.com", "new.com"], now)).toEqual(["new.com"]);
       expect(await findStaleDomains(repo, ["reddit.com"], new Date("2026-12-01T00:00:00.000Z"))).toEqual(["reddit.com"]);
     });

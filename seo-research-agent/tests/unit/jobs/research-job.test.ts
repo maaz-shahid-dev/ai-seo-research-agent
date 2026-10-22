@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => {
     queueAiAnalysis: vi.fn(),
     requestTopSerpAnalyses: vi.fn(),
     updateResearchRunProgress: vi.fn(),
+    expandWithAutocomplete: vi.fn(),
     getKeywordIdeas: vi.fn(),
     getOpenAiEnvironment: vi.fn(),
     dispatchOutboxEventNow: vi.fn(),
@@ -58,6 +59,9 @@ vi.mock("@/server/providers", () => ({
   ProviderError: mocks.ProviderError,
   createDataForSeoClient: () => ({ getKeywordIdeas: mocks.getKeywordIdeas }),
 }));
+vi.mock("@/server/jobs/autocomplete-expansion", () => ({
+  expandWithAutocomplete: mocks.expandWithAutocomplete,
+}));
 vi.mock("@/server/jobs/dispatch", () => ({
   dispatchOutboxEventNow: mocks.dispatchOutboxEventNow,
 }));
@@ -83,6 +87,7 @@ describe("research worker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requestTopSerpAnalyses.mockResolvedValue([{ id: SERP_ANALYSIS_ID }]);
+    mocks.expandWithAutocomplete.mockResolvedValue({ queries: 50, failedQueries: 0, added: 12 });
     mocks.claimResearchRun.mockResolvedValue({
       version: 2,
       query: "technical seo",
@@ -225,3 +230,32 @@ function context(data: unknown) {
     },
   };
 }
+
+describe("research worker autocomplete enrichment", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.requestTopSerpAnalyses.mockResolvedValue([]);
+    mocks.claimResearchRun.mockResolvedValue({ version: 2, query: "technical seo", countryCode: "US", languageCode: "en", configuration: { keywordLimit: 100 } });
+    mocks.getProviderMarket.mockResolvedValue({ locationCode: 2_840, languageCode: "en" });
+    mocks.getKeywordIdeas.mockResolvedValue({ taskId: "t", items: [{ keyword: "technical seo audit", searchVolume: 10, cpc: null, competition: null, competitionLevel: null, keywordDifficulty: null, intent: null, monthlySearches: [] }] });
+    mocks.updateResearchRunProgress.mockResolvedValue({ version: 3 });
+    mocks.insertKeywordResults.mockResolvedValue({ insertedCount: 1, duplicateCount: 0 });
+    mocks.listKeywordResults.mockResolvedValue({ items: [], nextCursor: null });
+    mocks.countKeywordResults.mockResolvedValue(1);
+    mocks.finishResearchRun.mockResolvedValue({ status: "completed", keywordCount: 1 });
+  });
+
+  it("expands with the seed, existing ideas and market", async () => {
+    mocks.expandWithAutocomplete.mockResolvedValue({ queries: 50, failedQueries: 0, added: 3 });
+    await handler(context(validEvent()));
+    expect(mocks.expandWithAutocomplete).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      seed: "technical seo", existingKeywords: ["technical seo audit"], locationCode: 2_840, languageCode: "en", countryCode: "US",
+    }));
+  });
+
+  it("still completes the run when autocomplete fails", async () => {
+    mocks.expandWithAutocomplete.mockRejectedValue(new Error("provider down"));
+    await expect(handler(context(validEvent()))).resolves.toMatchObject({ status: "completed" });
+    expect(mocks.finishResearchRun).toHaveBeenCalled();
+  });
+});

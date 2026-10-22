@@ -877,6 +877,7 @@ export const domainMetrics = pgTable(
     backlinks: bigint("backlinks", { mode: "number" }),
     referringDomains: integer("referring_domains"),
     monthlyTraffic: bigint("monthly_traffic", { mode: "number" }),
+    rankingKeywords: bigint("ranking_keywords", { mode: "number" }),
     registeredAt: timestamp("registered_at", { withTimezone: true }),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -888,6 +889,7 @@ export const domainMetrics = pgTable(
     check("domain_metrics_backlinks_check", sql`${table.backlinks} is null or ${table.backlinks} >= 0`),
     check("domain_metrics_referring_domains_check", sql`${table.referringDomains} is null or ${table.referringDomains} >= 0`),
     check("domain_metrics_traffic_check", sql`${table.monthlyTraffic} is null or ${table.monthlyTraffic} >= 0`),
+    check("domain_metrics_ranking_keywords_check", sql`${table.rankingKeywords} is null or ${table.rankingKeywords} >= 0`),
     check("domain_metrics_expiry_check", sql`${table.expiresAt} > ${table.fetchedAt}`),
   ],
 );
@@ -1003,6 +1005,25 @@ export const contentGapReports = pgTable(
   ],
 );
 
+/** Daily niche suggestions shown to every user (not tenant data). */
+export const nicheIdeas = pgTable(
+  "niche_ideas",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ideaDate: date("idea_date", { mode: "string" }).notNull(),
+    niche: varchar("niche", { length: 120 }).notNull(),
+    seedKeyword: varchar("seed_keyword", { length: 120 }).notNull(),
+    problem: varchar("problem", { length: 300 }).notNull(),
+    audience: varchar("audience", { length: 160 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("niche_ideas_date_seed_unique").on(table.ideaDate, sql`lower(${table.seedKeyword})`),
+    index("niche_ideas_date_idx").on(table.ideaDate),
+    check("niche_ideas_seed_not_blank_check", sql`char_length(btrim(${table.seedKeyword})) > 0`),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Project = typeof projects.$inferSelect;
@@ -1017,3 +1038,4 @@ export type DomainMetrics = typeof domainMetrics.$inferSelect;
 export type SerpAnalysis = typeof serpAnalyses.$inferSelect;
 export type SerpResult = typeof serpResults.$inferSelect;
 export type ContentGapReport = typeof contentGapReports.$inferSelect;
+export type NicheIdeaRow = typeof nicheIdeas.$inferSelect;

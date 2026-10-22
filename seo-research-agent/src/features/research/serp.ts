@@ -10,6 +10,7 @@ export type StoredDomainMetrics = {
   backlinks: number | null;
   referringDomains: number | null;
   monthlyTraffic: number | null;
+  rankingKeywords: number | null;
   registeredAt: Date | null;
 };
 
@@ -18,7 +19,7 @@ export function siteMetricsFor(
   hostname: string,
   metricsByDomain: ReadonlyMap<string, StoredDomainMetrics>,
   now = new Date(),
-): SerpSiteMetrics & { backlinks: number | null; referringDomains: number | null } {
+): SerpSiteMetrics & { backlinks: number | null; referringDomains: number | null; rankingKeywords: number | null } {
   const domain = registrableDomain(hostname) ?? hostname;
   const metrics = metricsByDomain.get(domain);
   return {
@@ -27,6 +28,7 @@ export function siteMetricsFor(
     monthlyTraffic: metrics?.monthlyTraffic ?? null,
     backlinks: metrics?.backlinks ?? null,
     referringDomains: metrics?.referringDomains ?? null,
+    rankingKeywords: metrics?.rankingKeywords ?? null,
     domainAgeYears: metrics?.registeredAt
       ? Math.max(0, Math.round(((now.getTime() - metrics.registeredAt.getTime()) / YEAR_MS) * 10) / 10)
       : null,
