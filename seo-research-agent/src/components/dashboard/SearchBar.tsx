@@ -4,12 +4,16 @@ import { Loader2, Search } from "lucide-react";
 import type { FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { MARKETS } from "@/features/research/markets";
 
 const EXAMPLES = ["bearded dragon tank setup", "sourdough starter problems", "betta fish tank setup"];
 
 type SearchBarProps = {
   query: string;
   onQueryChange: (value: string) => void;
+  /** Market to research in (ISO country code). */
+  country: string;
+  onCountryChange: (countryCode: string) => void;
   onSubmit: (query?: string) => void;
   pending: boolean;
   error: string | null;
@@ -18,7 +22,7 @@ type SearchBarProps = {
 };
 
 /** The main entry point: one topic in, a full niche analysis out. */
-export function SearchBar({ query, onQueryChange, onSubmit, pending, error, showExamples }: SearchBarProps) {
+export function SearchBar({ query, onQueryChange, country, onCountryChange, onSubmit, pending, error, showExamples }: SearchBarProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onSubmit();
@@ -45,6 +49,19 @@ export function SearchBar({ query, onQueryChange, onSubmit, pending, error, show
             autoComplete="off"
             className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-slate-950 placeholder:text-slate-400"
           />
+        </div>
+        <div className="relative">
+          <label htmlFor="country" className="sr-only">Country</label>
+          <select
+            id="country"
+            value={country}
+            onChange={(event) => onCountryChange(event.target.value)}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 sm:w-auto"
+          >
+            {MARKETS.map((market) => (
+              <option key={market.countryCode} value={market.countryCode}>{market.flag} {market.name}</option>
+            ))}
+          </select>
         </div>
         <Button type="submit" disabled={pending} className="rounded-xl px-6 py-3">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Search className="h-4 w-4" aria-hidden="true" />}

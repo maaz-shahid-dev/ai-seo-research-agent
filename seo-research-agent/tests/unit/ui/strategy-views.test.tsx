@@ -95,15 +95,42 @@ describe("daily niches", () => {
   it("lists today's ideas and checks one with a click", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
       date: "2026-10-22",
-      ideas: [{ id: "i1", niche: "Betta tank care", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "new fish owners", nicheType: "info" }],
+      ideas: [{
+        id: "i1", niche: "Betta tank care", seedKeyword: "betta fish tank setup", problem: "Cloudy water", audience: "new fish owners",
+        nicheType: "info", countryCode: "GB", searchVolume: 2_400, difficulty: 12, lowAuthorityCount: 4,
+      }],
     }), { status: 200 })));
     const onCheck = vi.fn();
     render(<DailyNichesView onCheck={onCheck} />);
 
     expect(await screen.findByText("Betta tank care")).toBeTruthy();
     expect(screen.getByText(/Thursday, October 22/)).toBeTruthy();
+    expect(screen.getByText("2,400")).toBeTruthy();
+    expect(screen.getByText("4/10")).toBeTruthy();
+    expect(screen.getByText(/United Kingdom/)).toBeTruthy();
     await userEvent.setup({ delay: null }).click(screen.getByRole("button", { name: "Check niche" }));
-    expect(onCheck).toHaveBeenCalledWith("betta fish tank setup");
+    expect(onCheck).toHaveBeenCalledWith("betta fish tank setup", "GB");
+  });
+
+  it("filters to low-DR ideas and sorts by volume", async () => {
+    const idea = (id: string, niche: string, searchVolume: number, lowAuthorityCount: number | null) => ({
+      id, niche, seedKeyword: niche.toLowerCase(), problem: "p", audience: "a", nicheType: "info", countryCode: "US",
+      searchVolume, difficulty: 20, lowAuthorityCount,
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      date: "2026-10-22",
+      ideas: [idea("a", "Small niche", 500, 5), idea("b", "Big niche", 9_000, 1), idea("c", "Unchecked niche", 3_000, null)],
+    }), { status: 200 })));
+    const user = userEvent.setup({ delay: null });
+    render(<DailyNichesView onCheck={vi.fn()} />);
+    await screen.findByText("Small niche");
+
+    await user.selectOptions(screen.getByLabelText("Sort ideas"), "volume");
+    const names = () => screen.getAllByRole("listitem").map((item) => item.querySelector("p")!.textContent);
+    expect(names()).toEqual(["Big niche", "Unchecked niche", "Small niche"]);
+
+    await user.click(screen.getByRole("button", { name: /Low DR/ }));
+    expect(names()).toEqual(["Small niche"]);
   });
 
   it("explains when no ideas exist yet", async () => {
@@ -170,7 +197,7 @@ describe("daily niche filters", () => {
     await user.click(screen.getByRole("button", { name: "AI tools & agents (1)" }));
     expect(screen.queryByText("CRM for freelancers")).toBeNull();
     expect(screen.getByText("AI agents for small business", { selector: "p" })).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "All (2)" }));
+    await user.click(screen.getByRole("button", { name: "All types (2)" }));
     expect(screen.getByText("CRM for freelancers")).toBeTruthy();
   });
 });

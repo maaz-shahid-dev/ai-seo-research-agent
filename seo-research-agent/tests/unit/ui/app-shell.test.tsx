@@ -76,14 +76,18 @@ describe("search bar", () => {
   it("submits typed topics and example topics", async () => {
     const user = userEvent.setup({ delay: null });
     const onSubmit = vi.fn();
+    const onCountryChange = vi.fn();
     const { rerender } = render(
-      <SearchBar query="" onQueryChange={vi.fn()} onSubmit={onSubmit} pending={false} error={null} showExamples />,
+      <SearchBar query="" onQueryChange={vi.fn()} country="US" onCountryChange={onCountryChange} onSubmit={onSubmit} pending={false} error={null} showExamples />,
     );
 
     await user.click(screen.getByRole("button", { name: "sourdough starter problems" }));
     expect(onSubmit).toHaveBeenCalledWith("sourdough starter problems");
 
-    rerender(<SearchBar query="x" onQueryChange={vi.fn()} onSubmit={onSubmit} pending={false} error="Keyword research isn't available yet." showExamples={false} />);
+    await user.selectOptions(screen.getByLabelText("Country"), "PK");
+    expect(onCountryChange).toHaveBeenCalledWith("PK");
+
+    rerender(<SearchBar query="x" onQueryChange={vi.fn()} country="PK" onCountryChange={onCountryChange} onSubmit={onSubmit} pending={false} error="Keyword research isn't available yet." showExamples={false} />);
     expect(screen.queryByRole("button", { name: "sourdough starter problems" })).toBeNull();
     expect(screen.getByRole("alert").textContent).toContain("isn't available yet");
   });

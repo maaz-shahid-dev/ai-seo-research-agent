@@ -4,6 +4,7 @@ import { signOut } from "next-auth/react";
 import { useRef, useState } from "react";
 
 import { replaceProject } from "@/features/projects/client";
+import { MARKET_LANGUAGE } from "@/features/research/markets";
 import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
 import { AppShell, type AppView } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -32,6 +33,8 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
   );
   const [selectedRun, setSelectedRun] = useState<ResearchRunDto | null>(null);
   const [query, setQuery] = useState("");
+  // Null until the user picks a country; until then searches use the project's market.
+  const [chosenCountry, setChosenCountry] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Reused when a submission is retried so the server never starts it twice.
@@ -41,6 +44,7 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
   // Fall back to the first active project if the chosen one was archived.
   const project = activeProjects.find((item) => item.id === chosenProjectId) ?? activeProjects[0] ?? null;
   const recent = useRecentRuns(project?.id ?? null);
+  const country = chosenCountry ?? project?.countryCode ?? "US";
   // Show the user's pick, otherwise the latest search, so results survive a reload.
   const displayedRun =
     (selectedRun && recent.runs.find((run) => run.id === selectedRun.id)) ?? selectedRun ?? recent.runs[0] ?? null;
@@ -56,7 +60,7 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
     setView("research");
   }
 
-  async function submit(seed = query) {
+  async function submit(seed = query, countryCode = country) {
     if (!project || submitting) return;
     setSubmitting(true);
     setSubmitError(null);
@@ -67,8 +71,8 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
         body: JSON.stringify({
           projectId: project.id,
           seed,
-          countryCode: project.countryCode,
-          languageCode: project.languageCode,
+          countryCode,
+          languageCode: MARKET_LANGUAGE,
           device: "desktop",
           keywordLimit: 100,
           idempotencyKey: idempotencyKey.current,
@@ -84,16 +88,17 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
     }
   }
 
-  /** Runs a search for a suggested niche and shows its results. */
-  function checkNiche(seed: string) {
+  /** Runs a search for a suggested niche in its own country and shows its results. */
+  function checkNiche(seed: string, countryCode: string) {
     setView("research");
-    retry(seed);
+    setChosenCountry(countryCode);
+    retry(seed, countryCode);
   }
 
-  function retry(seed: string) {
+  function retry(seed: string, countryCode = country) {
     setQuery(seed);
     idempotencyKey.current = null;
-    void submit(seed);
+    void submit(seed, countryCode);
   }
 
   const sidebar = (
@@ -151,6 +156,11 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
             query={query}
             onQueryChange={(value) => {
               setQuery(value);
+              idempotencyKey.current = null;
+            }}
+            country={country}
+            onCountryChange={(value) => {
+              setChosenCountry(value);
               idempotencyKey.current = null;
             }}
             onSubmit={(example) => (example ? retry(example) : void submit())}
