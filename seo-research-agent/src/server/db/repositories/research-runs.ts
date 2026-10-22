@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 
 import { idempotencyKeySchema, researchRequestSchema } from "@/features/research/schemas";
 import type { DatabaseClient } from "../client";
@@ -121,12 +121,14 @@ export async function getResearchRunById(
 export async function listResearchRuns(
   database: DatabaseClient,
   ownerId: string,
-  options: { projectId?: string; cursor?: ResearchRunCursor; limit?: number } = {},
+  options: { projectId?: string; cursor?: ResearchRunCursor; limit?: number; search?: string } = {},
 ) {
   const limit = boundedLimit(options.limit, 25, 100);
   const conditions = [eq(researchRuns.ownerId, ownerId)];
 
   if (options.projectId) conditions.push(eq(researchRuns.projectId, options.projectId));
+  const search = options.search?.trim().slice(0, 100);
+  if (search) conditions.push(ilike(researchRuns.query, `%${escapeLikePattern(search)}%`));
   if (options.cursor) {
     conditions.push(
       or(
@@ -351,4 +353,18 @@ function deterministicUuid(ownerId: string, idempotencyKey: string) {
 
 function boundedLimit(value: number | undefined, fallback: number, maximum: number) {
   return Number.isSafeInteger(value) ? Math.min(Math.max(value!, 1), maximum) : fallback;
+}
+
+/** Deletes the owner's run; keywords, SERPs, analyses and reports cascade with it. */
+export async function deleteResearchRun(database: DatabaseClient, ownerId: string, runId: string) {
+  const [deleted] = await database
+    .delete(researchRuns)
+    .where(and(eq(researchRuns.id, runId), eq(researchRuns.ownerId, ownerId)))
+    .returning({ id: researchRuns.id });
+  return deleted !== undefined;
+}
+
+/** Escapes LIKE wildcards so user text matches literally. */
+function escapeLikePattern(value: string) {
+  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }

@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => {
     listKeywordResults: vi.fn(),
     listResearchRuns: vi.fn(),
     listNicheScores: vi.fn(),
+    deleteResearchRun: vi.fn(),
     countPendingSerpAnalyses: vi.fn(),
     isResearchConfigured: vi.fn(),
     dispatchResearchRunNow: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock("@/server/db/repositories", () => ({
   listKeywordResults: mocks.listKeywordResults,
   listResearchRuns: mocks.listResearchRuns,
   listNicheScores: mocks.listNicheScores,
+  deleteResearchRun: mocks.deleteResearchRun,
   countPendingSerpAnalyses: mocks.countPendingSerpAnalyses,
 }));
 vi.mock("@/server/config/environment", () => ({
@@ -52,7 +54,7 @@ vi.mock("@/server/logging/logger", () => ({
 }));
 
 import { GET as listResearchRoute, POST as createResearchRoute } from "@/app/api/research/route";
-import { GET as getResearchRoute } from "@/app/api/research/[runId]/route";
+import { DELETE as deleteResearchRoute, GET as getResearchRoute } from "@/app/api/research/[runId]/route";
 
 const USER_ID = "10000000-0000-4000-8000-000000000001";
 const PROJECT_ID = "20000000-0000-4000-8000-000000000001";
@@ -503,3 +505,45 @@ function researchRequest(
     body: JSON.stringify(body),
   });
 }
+
+describe("research delete and history pagination", () => {
+  it("deletes the owner's run behind a same-origin check", async () => {
+    mocks.deleteResearchRun.mockResolvedValue(true);
+    const response = await deleteResearchRoute(
+      new Request(`https://app.example.test/api/research/${RUN_ID}`, { method: "DELETE", headers: { origin: "https://app.example.test" } }),
+      { params: Promise.resolve({ runId: RUN_ID }) },
+    );
+    expect(response.status).toBe(204);
+    expect(mocks.deleteResearchRun).toHaveBeenCalledWith(mocks.database, USER_ID, RUN_ID);
+  });
+
+  it("rejects cross-site deletes and unknown runs", async () => {
+    const crossSite = await deleteResearchRoute(
+      new Request(`https://app.example.test/api/research/${RUN_ID}`, { method: "DELETE", headers: { origin: "https://evil.example", "sec-fetch-site": "cross-site" } }),
+      { params: Promise.resolve({ runId: RUN_ID }) },
+    );
+    expect(crossSite.status).toBe(403);
+    expect(mocks.deleteResearchRun).not.toHaveBeenCalled();
+
+    mocks.deleteResearchRun.mockResolvedValue(false);
+    const missing = await deleteResearchRoute(
+      new Request(`https://app.example.test/api/research/${RUN_ID}`, { method: "DELETE", headers: { origin: "https://app.example.test" } }),
+      { params: Promise.resolve({ runId: RUN_ID }) },
+    );
+    expect(missing.status).toBe(404);
+  });
+
+  it("passes search text and a decoded cursor, and returns the next cursor", async () => {
+    const cursorDate = new Date("2026-10-20T00:00:00.000Z");
+    mocks.listResearchRuns.mockResolvedValue({ items: [completedRun], nextCursor: { createdAt: cursorDate, id: RUN_ID } });
+    const first = await listResearchRoute(historyRequest(`?projectId=${PROJECT_ID}&q=shoes`));
+    const { nextCursor } = await first.json();
+    expect(mocks.listResearchRuns).toHaveBeenCalledWith(mocks.database, USER_ID, { projectId: PROJECT_ID, limit: 10, search: "shoes" });
+
+    await listResearchRoute(historyRequest(`?projectId=${PROJECT_ID}&cursor=${nextCursor}`));
+    expect(mocks.listResearchRuns).toHaveBeenLastCalledWith(mocks.database, USER_ID, {
+      projectId: PROJECT_ID, limit: 10, cursor: { createdAt: cursorDate, id: RUN_ID },
+    });
+    expect((await listResearchRoute(historyRequest(`?projectId=${PROJECT_ID}&cursor=garbage`))).status).toBe(400);
+  });
+});

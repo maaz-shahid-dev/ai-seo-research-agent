@@ -13,6 +13,7 @@ import { AppError, errorResponse } from "@/server/http/errors";
 import { noStore, readBoundedJson, readRequestId } from "@/server/http/request";
 import { dispatchResearchRunNow } from "@/server/jobs";
 import { enforceRateLimit } from "@/server/rate-limit/rate-limit";
+import { decodeRunCursor, encodeRunCursor } from "@/server/research/run-cursor";
 import { isSameOriginMutation } from "@/server/security/request";
 
 /** Lists the signed-in user's most recent runs for one project, newest first. */
@@ -24,12 +25,19 @@ export async function GET(request: Request) {
     const input = researchHistoryQuerySchema.parse({
       projectId: params.get("projectId") ?? undefined,
       limit: params.get("limit") ?? undefined,
+      q: params.get("q") ?? undefined,
+      cursor: params.get("cursor") ?? undefined,
     });
     const result = await listResearchRuns(getDatabase(), user.id, {
       projectId: input.projectId,
       limit: input.limit,
+      ...(input.q ? { search: input.q } : {}),
+      ...(input.cursor ? { cursor: decodeRunCursor(input.cursor) } : {}),
     });
-    return noStore(Response.json({ runs: result.items.map(toResearchRunDto) }));
+    return noStore(Response.json({
+      runs: result.items.map(toResearchRunDto),
+      nextCursor: result.nextCursor ? encodeRunCursor(result.nextCursor) : null,
+    }));
   } catch (error) {
     return noStore(errorResponse(error, requestId));
   }

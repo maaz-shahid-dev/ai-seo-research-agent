@@ -30,6 +30,8 @@ export const researchSubmissionSchema = researchRequestSchema.extend({
 export const researchHistoryQuerySchema = z.object({
   projectId: projectIdSchema,
   limit: z.coerce.number().int().min(1).max(50).default(10),
+  q: z.string().trim().max(100).optional(),
+  cursor: z.string().max(300).optional(),
 });
 
 export type ResearchRequestInput = z.infer<typeof researchRequestSchema>;

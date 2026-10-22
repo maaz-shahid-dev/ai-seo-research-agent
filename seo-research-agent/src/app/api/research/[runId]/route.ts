@@ -4,6 +4,7 @@ import { requireActiveUser } from "@/server/auth";
 import { getDatabase } from "@/server/db/client";
 import {
   countPendingSerpAnalyses,
+  deleteResearchRun,
   getLatestAiAnalysisForRun,
   getResearchRunById,
   listKeywordResults,
@@ -11,6 +12,7 @@ import {
 } from "@/server/db/repositories";
 import { AppError, errorResponse } from "@/server/http/errors";
 import { noStore, readRequestId } from "@/server/http/request";
+import { isSameOriginMutation } from "@/server/security/request";
 
 type RouteContext = { params: Promise<{ runId: string }> };
 
@@ -56,4 +58,22 @@ function parseCursor(value: string | null) {
     throw new AppError("Invalid result cursor.", "VALIDATION_ERROR", 400, false);
   }
   return parsed;
+}
+
+/** Removes a search and everything collected for it. */
+export async function DELETE(request: Request, context: RouteContext) {
+  const requestId = readRequestId(request);
+  try {
+    if (!isSameOriginMutation(request)) {
+      throw new AppError("This request is not allowed.", "INVALID_ORIGIN", 403, false);
+    }
+    const user = await requireActiveUser();
+    const runId = researchRunIdSchema.parse((await context.params).runId);
+    if (!(await deleteResearchRun(getDatabase(), user.id, runId))) {
+      throw new AppError("Research not found.", "NOT_FOUND", 404, false);
+    }
+    return noStore(new Response(null, { status: 204 }));
+  } catch (error) {
+    return noStore(errorResponse(error, requestId));
+  }
 }
