@@ -10,9 +10,11 @@ import type { KeywordDto } from "@/features/research/types";
 import { ARTICLE_TYPE_LABELS } from "@/features/research/coverage";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { StatCard } from "@/components/ui/Card";
 import { useStoredChecklist } from "@/hooks/useStoredChecklist";
 import { downloadFile } from "@/lib/download";
 import { formatNumber } from "@/lib/format";
+import { Card } from "@/components/ui/Card";
 
 /** Briefs shown before "Show all", so the plan stays scannable. */
 const BRIEFS_PREVIEW = 10;
@@ -46,12 +48,12 @@ export function LaunchPlanView({ runId, seed, keywords, nicheType }: LaunchPlanV
           <Download className="h-4 w-4" aria-hidden="true" /> Export plan
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Total label="Niche type" value={NICHE_TYPE_PROFILES[nicheType].label} />
-        <Total label="Articles" value={formatNumber(blueprint.totals.articles)} />
-        <Total label="Quick wins" value={formatNumber(blueprint.totals.quickWins)} />
-        <Total label="Words to write" value={formatNumber(blueprint.totals.words)} />
-      </div>
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Niche type" value={NICHE_TYPE_PROFILES[nicheType].label} compact />
+        <StatCard label="Articles" value={formatNumber(blueprint.totals.articles)} />
+        <StatCard label="Quick wins" value={formatNumber(blueprint.totals.quickWins)} />
+        <StatCard label="Words to write" value={formatNumber(blueprint.totals.words)} />
+      </dl>
 
       <Section icon={Rocket} title="Launch steps, A to Z" note={`${doneCount} of ${steps.length} done`}>
         <progress value={doneCount} max={steps.length} aria-label="Launch progress" className="mb-3 h-1.5 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:bg-emerald-500 [&::-webkit-progress-bar]:bg-slate-100 [&::-webkit-progress-value]:bg-emerald-500" />
@@ -179,7 +181,7 @@ function BriefItem({ brief }: { brief: ContentBrief }) {
 
 function Section({ icon: Icon, title, note, children }: { icon: typeof Rocket; title: string; note?: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
+    <Card as="section">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
           <Icon className="h-4 w-4 text-indigo-600" aria-hidden="true" /> {title}
@@ -187,7 +189,7 @@ function Section({ icon: Icon, title, note, children }: { icon: typeof Rocket; t
         {note ? <p className="text-xs text-slate-500">{note}</p> : null}
       </div>
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -196,15 +198,6 @@ function BriefBlock({ title, children }: { title: string; children: ReactNode })
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
       <div className="mt-1">{children}</div>
-    </div>
-  );
-}
-
-function Total({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

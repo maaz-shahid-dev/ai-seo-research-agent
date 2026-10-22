@@ -8,6 +8,7 @@ import { MARKET_LANGUAGE } from "@/features/research/markets";
 import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
 import { AppShell, type AppView } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
 import { DailyNichesView } from "./DailyNichesView";
@@ -157,10 +158,9 @@ export function DashboardClient({ user, initialProjects, demo = false }: Dashboa
           onOpen={openProject}
         />
       ) : !project ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <h1 className="font-semibold">No active projects</h1>
-          <Button className="mt-4" onClick={() => setView("projects")}>Manage projects</Button>
-        </div>
+        <EmptyState title="No active projects" action={<Button onClick={() => setView("projects")}>Manage projects</Button>}>
+          Create or restore a project to start researching.
+        </EmptyState>
       ) : (
         <>
           <SearchBar

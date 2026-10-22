@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { isRunInProgress, type ProjectDto, type ResearchRunDto } from "@/features/research/types";
 import { Button, buttonStyles } from "@/components/ui/Button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { formatRelativeTime, titleCase } from "@/lib/format";
 
 import { ResearchResults } from "./ResearchResults";
@@ -50,15 +51,16 @@ export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange
           onLoadMore={loadMore}
         />
       ) : (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-5" role="alert">
-          <p className="text-sm text-rose-800">
-            {run.errorMessage ?? "This search didn't finish."}
-          </p>
-          <Button variant="secondary" size="sm" className="mt-3" onClick={() => onRetry(run.query, run.countryCode)}>
-            <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            Try again
-          </Button>
-        </div>
+        <ErrorState
+          action={
+            <Button variant="secondary" size="sm" onClick={() => onRetry(run.query, run.countryCode)}>
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Try again
+            </Button>
+          }
+        >
+          {run.errorMessage ?? "This search didn't finish."}
+        </ErrorState>
       )}
     </section>
   );

@@ -7,6 +7,8 @@ import { marketFor } from "@/features/research/markets";
 import { isRunInProgress, type ResearchRunDto } from "@/features/research/types";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { apiRequest, errorMessage, isAbortError } from "@/lib/api-client";
 import { formatNumber, formatRelativeTime } from "@/lib/format";
 
@@ -123,12 +125,10 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
         />
       </div>
 
-      {state.error ? <p className="text-sm text-rose-700" role="alert">{state.error}</p> : null}
-      {deleteError ? <p className="text-sm text-rose-700" role="alert">{deleteError}</p> : null}
+      {state.error ? <ErrorState>{state.error}</ErrorState> : null}
+      {deleteError ? <ErrorState>{deleteError}</ErrorState> : null}
       {empty ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          {search ? `No searches match “${search}”.` : "No searches yet. Run your first research to see it here."}
-        </p>
+        <EmptyState>{search ? `No searches match “${search}”.` : "No searches yet. Run your first research to see it here."}</EmptyState>
       ) : null}
 
       {state.runs.length > 0 ? (

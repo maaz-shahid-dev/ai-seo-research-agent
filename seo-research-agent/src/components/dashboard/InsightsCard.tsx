@@ -1,6 +1,7 @@
 import { Loader2, Sparkles } from "lucide-react";
 
 import type { AiAnalysisDto } from "@/features/research/types";
+import { Card } from "@/components/ui/Card";
 
 type Statement = { statement: string };
 
@@ -29,7 +30,7 @@ export function InsightsCard({ analysis }: { analysis: AiAnalysisDto | null }) {
   const { summary, opportunitySignals, risks, nextSteps } = analysis.output;
 
   return (
-    <section aria-labelledby="insights-title" className="rounded-xl border border-slate-200 bg-white p-5">
+    <Card as="section" aria-labelledby="insights-title">
       <h2 id="insights-title" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
         <Sparkles className="h-4 w-4 text-indigo-600" aria-hidden="true" />
         AI summary
@@ -40,7 +41,7 @@ export function InsightsCard({ analysis }: { analysis: AiAnalysisDto | null }) {
         <InsightList title="Risks" items={risks} />
         <InsightList title="Next steps" items={nextSteps} />
       </div>
-    </section>
+    </Card>
   );
 }
 

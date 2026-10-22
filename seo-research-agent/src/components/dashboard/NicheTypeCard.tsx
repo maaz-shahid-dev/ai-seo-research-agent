@@ -1,12 +1,13 @@
 import { Coins, Compass, ShieldAlert } from "lucide-react";
 
 import { NICHE_TYPE_PROFILES, type NicheType } from "@/features/research/niche-types";
+import { Card } from "@/components/ui/Card";
 
 /** What kind of niche this is, and how sites in it make money and win. */
 export function NicheTypeCard({ type }: { type: NicheType }) {
   const profile = NICHE_TYPE_PROFILES[type];
   return (
-    <section aria-labelledby="niche-type-title" className="rounded-xl border border-slate-200 bg-white p-5">
+    <Card as="section" aria-labelledby="niche-type-title">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Niche type</p>
       <h2 id="niche-type-title" className="mt-1 text-lg font-semibold text-slate-950">{profile.label}</h2>
       <p className="mt-1 text-sm text-slate-600">{profile.summary}</p>
@@ -15,7 +16,7 @@ export function NicheTypeCard({ type }: { type: NicheType }) {
         <List icon={Compass} title="Winning strategy" items={profile.strategy} />
         <List icon={ShieldAlert} title="Watch out for" items={profile.cautions} />
       </div>
-    </section>
+    </Card>
   );
 }
 

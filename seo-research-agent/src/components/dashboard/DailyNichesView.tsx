@@ -17,6 +17,8 @@ import { NICHE_TYPE_PROFILES, NICHE_TYPES } from "@/features/research/niche-type
 import type { NicheIdeaDto, NicheIdeasResponse } from "@/features/research/types";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { usePolling } from "@/hooks/usePolling";
 import { apiRequest } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
@@ -94,24 +96,19 @@ export function DailyNichesView({ onCheck }: { onCheck: CheckNiche }) {
         </div>
       ) : null}
 
-      {error && !data ? <p className="text-sm text-rose-700" role="alert">{error}</p> : null}
+      {error && !data ? <ErrorState>{error}</ErrorState> : null}
       {!data && !error ? (
         <p className="flex items-center gap-2 text-sm text-slate-600" role="status">
           <Loader2 className="h-4 w-4 animate-spin text-indigo-600" aria-hidden="true" /> Loading today’s ideas…
         </p>
       ) : null}
       {data && ideas.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          New ideas appear every morning. Check back tomorrow.
-        </p>
+        <EmptyState>New ideas appear every morning. Check back tomorrow.</EmptyState>
       ) : null}
       {ideas.length > 0 && visible.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          No ideas match these filters today.{" "}
-          <button type="button" className="font-medium text-indigo-700 hover:underline" onClick={() => setFilters(DEFAULT_IDEA_FILTERS)}>
-            Clear filters
-          </button>
-        </p>
+        <EmptyState action={<Button variant="secondary" size="sm" onClick={() => setFilters(DEFAULT_IDEA_FILTERS)}>Clear filters</Button>}>
+          No ideas match these filters today.
+        </EmptyState>
       ) : null}
 
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -1,6 +1,7 @@
 import type { Opportunity } from "@/features/research/opportunity";
 import { TIER_LABELS } from "@/features/research/opportunity";
 import type { KeywordDto } from "@/features/research/types";
+import { StatCard } from "@/components/ui/Card";
 import { formatNumber } from "@/lib/format";
 
 type OverviewStatsProps = {
@@ -20,25 +21,16 @@ export function OverviewStats({ keywords, opportunities }: OverviewStatsProps) {
 
   return (
     <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Stat label="Keywords" value={formatNumber(keywords.length)} />
-      <Stat label="Monthly searches" value={formatNumber(volume)} />
-      <Stat label="Average KD" value={averageKd === null ? "—" : `${averageKd} / 100`} />
-      <Stat
+      <StatCard label="Keywords" value={formatNumber(keywords.length)} />
+      <StatCard label="Monthly searches" value={formatNumber(volume)} />
+      <StatCard label="Average KD" value={averageKd === null ? "—" : `${averageKd} / 100`} />
+      <StatCard
         label="Top opportunity"
-        value={top?.keyword ?? "—"}
+        value={<span title={top?.keyword}>{top?.keyword ?? "—"}</span>}
         detail={topOpportunity ? `${TIER_LABELS[topOpportunity.tier]} · ${topOpportunity.score} · ${formatNumber(top!.searchVolume)}/mo` : undefined}
-        truncate
+        compact
       />
     </dl>
   );
 }
 
-function Stat({ label, value, detail, truncate = false }: { label: string; value: string; detail?: string; truncate?: boolean }) {
-  return (
-    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
-      <dt className="text-xs font-medium text-slate-500">{label}</dt>
-      <dd className={`mt-1 font-semibold text-slate-900 ${truncate ? "truncate text-sm" : "text-xl tabular-nums"}`} title={truncate ? value : undefined}>{value}</dd>
-      {detail ? <dd className="mt-0.5 truncate text-xs text-slate-500">{detail}</dd> : null}
-    </div>
-  );
-}

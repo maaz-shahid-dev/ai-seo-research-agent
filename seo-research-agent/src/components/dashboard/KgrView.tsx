@@ -7,8 +7,10 @@ import { isKgrCandidate, KGR_BATCH_SIZE, KGR_MAX_VOLUME, kgrRatio, kgrRating, ty
 import type { KeywordDto } from "@/features/research/types";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
+import { Card } from "@/components/ui/Card";
 
 const RATINGS: Record<KgrRating, { label: string; tone: BadgeTone }> = {
   great: { label: "Golden", tone: "good" },
@@ -62,7 +64,7 @@ export function KgrView({ runId, keywords }: { runId: string; keywords: KeywordD
   }
 
   return (
-    <section aria-labelledby="kgr-title" className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+    <Card as="section" aria-labelledby="kgr-title" className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 id="kgr-title" className="flex items-center gap-2 font-semibold text-slate-900">
@@ -83,9 +85,7 @@ export function KgrView({ runId, keywords }: { runId: string; keywords: KeywordD
       {message ? <p className={`text-sm ${message.error ? "text-rose-700" : "text-slate-600"}`} role="alert">{message.text}</p> : null}
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-          No keywords with {KGR_MAX_VOLUME} or fewer monthly searches in this research. Try a more specific topic.
-        </p>
+        <EmptyState>No keywords with {KGR_MAX_VOLUME} or fewer monthly searches in this research. Try a more specific topic.</EmptyState>
       ) : (
         <div className="relative overflow-x-auto">
           <table className="w-full min-w-[520px] text-sm">
@@ -116,6 +116,6 @@ export function KgrView({ runId, keywords }: { runId: string; keywords: KeywordD
           </table>
         </div>
       )}
-    </section>
+    </Card>
   );
 }

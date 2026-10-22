@@ -7,6 +7,7 @@ import { buildCoverageGroups, EASY_DIFFICULTY_MAX, type CoverageGroup } from "@/
 import type { KeywordDto } from "@/features/research/types";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { toCsv } from "@/lib/csv";
 import { downloadFile } from "@/lib/download";
 import { formatNumber } from "@/lib/format";
@@ -30,7 +31,7 @@ export function CoverageView({ seed, keywords, onSelect, exportName }: CoverageV
   }
 
   if (patterns.length === 0 && packs.length === 0) {
-    return <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">No keyword variations collected for this topic yet.</p>;
+    return <EmptyState>No keyword variations collected for this topic yet.</EmptyState>;
   }
 
   return (
