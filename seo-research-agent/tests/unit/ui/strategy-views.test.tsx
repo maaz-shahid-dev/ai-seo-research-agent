@@ -174,3 +174,18 @@ describe("daily niche filters", () => {
     expect(screen.getByText("CRM for freelancers")).toBeTruthy();
   });
 });
+
+describe("launch plan briefs", () => {
+  it("shows ten briefs first and the rest on request", async () => {
+    const user = userEvent.setup({ delay: null });
+    const many = Array.from({ length: 14 }, (_, i) => keyword(100 + i, `bearded dragon tank topic${String.fromCharCode(97 + i)}`, { searchVolume: 1_000 - i }));
+    render(<LaunchPlanView seed={seed.keyword} keywords={[seed, ...many]} nicheType="info" />);
+
+    const briefs = () => screen.getByText("Content briefs").closest("section")!.querySelectorAll("details").length;
+    expect(briefs()).toBe(10);
+    await user.click(screen.getByRole("button", { name: /Show all \d+ briefs/ }));
+    expect(briefs()).toBe(15);
+    await user.click(screen.getByRole("button", { name: "Show fewer" }));
+    expect(briefs()).toBe(10);
+  });
+});

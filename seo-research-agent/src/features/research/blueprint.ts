@@ -2,6 +2,9 @@ import { meaningfulWords, normalizePhrase } from "./autocomplete";
 import { buildContentPlan, type ArticleType, type ContentCluster, type CoverageKeyword } from "./coverage";
 import { isQuestionKeyword } from "./niche";
 import type { NicheType } from "./niche-types";
+import { titleCase } from "@/lib/format";
+
+export { titleCase };
 
 /**
  * A website launch plan built programmatically from the research: domain
@@ -206,6 +209,3 @@ function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-function titleCase(value: string) {
-  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
-}

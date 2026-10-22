@@ -1,14 +1,18 @@
 "use client";
 
 import { CalendarDays, CheckCircle2, ChevronDown, FileText, Globe, Network, Rocket, Zap } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { buildBlueprint, launchSteps, type ContentBrief } from "@/features/research/blueprint";
 import { NICHE_TYPE_PROFILES, type NicheType } from "@/features/research/niche-types";
 import type { KeywordDto } from "@/features/research/types";
 import { ARTICLE_TYPE_LABELS } from "@/features/research/coverage";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { formatNumber } from "@/lib/format";
+
+/** Briefs shown before "Show all", so the plan stays scannable. */
+const BRIEFS_PREVIEW = 10;
 
 type LaunchPlanViewProps = { seed: string; keywords: readonly KeywordDto[]; nicheType: NicheType };
 
@@ -16,6 +20,7 @@ type LaunchPlanViewProps = { seed: string; keywords: readonly KeywordDto[]; nich
 export function LaunchPlanView({ seed, keywords, nicheType }: LaunchPlanViewProps) {
   const blueprint = useMemo(() => buildBlueprint(seed, keywords, nicheType), [seed, keywords, nicheType]);
   const steps = useMemo(() => launchSteps(nicheType), [nicheType]);
+  const [showAllBriefs, setShowAllBriefs] = useState(false);
 
   if (blueprint.briefs.length === 0) return <p className="py-6 text-sm text-slate-500">No keywords to plan yet.</p>;
 
@@ -87,8 +92,17 @@ export function LaunchPlanView({ seed, keywords, nicheType }: LaunchPlanViewProp
 
       <Section icon={FileText} title="Content briefs" note={`${blueprint.briefs.length} ready-to-write briefs.`}>
         <ol className="space-y-2">
-          {blueprint.briefs.map((brief) => <BriefItem key={brief.url} brief={brief} />)}
+          {(showAllBriefs ? blueprint.briefs : blueprint.briefs.slice(0, BRIEFS_PREVIEW)).map((brief) => (
+            <BriefItem key={brief.url} brief={brief} />
+          ))}
         </ol>
+        {blueprint.briefs.length > BRIEFS_PREVIEW ? (
+          <div className="mt-3 text-center">
+            <Button variant="secondary" size="sm" onClick={() => setShowAllBriefs((current) => !current)}>
+              {showAllBriefs ? "Show fewer" : `Show all ${blueprint.briefs.length} briefs`}
+            </Button>
+          </div>
+        ) : null}
       </Section>
     </div>
   );

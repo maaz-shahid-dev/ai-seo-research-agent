@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { ARTICLE_TYPE_LABELS, buildContentPlan, MANAGEABLE_MAX_PAGES, type CoverageSize } from "@/features/research/coverage";
 import type { KeywordDto } from "@/features/research/types";
 import { Badge, difficultyTone, type BadgeTone } from "@/components/ui/Badge";
-import { capitalize, formatNumber } from "@/lib/format";
+import { formatNumber, sentenceCase } from "@/lib/format";
 
 const SIZE_COPY: Record<CoverageSize, { label: string; tone: BadgeTone; detail: string }> = {
   small: { label: "Small", tone: "good", detail: "Quick to cover completely — great for a first site." },
@@ -36,7 +36,7 @@ export function ContentPlanView({ seed, keywords }: { seed: string; keywords: re
               <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
                 <span className="w-6 shrink-0 text-right text-sm font-semibold tabular-nums text-slate-400">{index + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-slate-900">{capitalize(cluster.mainKeyword)}</p>
+                  <p className="truncate font-medium text-slate-900">{sentenceCase(cluster.mainKeyword)}</p>
                   <p className="text-xs text-slate-500">
                     {cluster.keywords.length} keyword{cluster.keywords.length === 1 ? "" : "s"} · {formatNumber(cluster.totalVolume)} searches/mo
                   </p>

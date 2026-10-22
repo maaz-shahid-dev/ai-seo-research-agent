@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildBlueprint, domainIdeas, launchSteps } from "@/features/research/blueprint";
+import { buildBlueprint, domainIdeas, launchSteps, titleCase } from "@/features/research/blueprint";
 import { classifyNicheType, NICHE_TYPE_PROFILES, NICHE_TYPES } from "@/features/research/niche-types";
 
 describe("niche type classification", () => {
@@ -104,5 +104,18 @@ describe("launch blueprint", () => {
     expect(steps[0]!.title).toBe("Lock the niche");
     expect(steps.at(-1)!.title).toBe("Refresh and expand");
     expect(steps.find((step) => step.title === "Build the site")!.detail).toContain("tool pages");
+  });
+});
+
+describe("title case", () => {
+  it("keeps acronyms and brand casing", () => {
+    expect(titleCase("ai agents for small business")).toBe("AI Agents For Small Business");
+    expect(titleCase("best crm vs chatgpt for saas teams")).toBe("Best CRM vs ChatGPT For SaaS Teams");
+    expect(titleCase("kids' diy apk guide")).toBe("Kids' DIY APK Guide");
+  });
+
+  it("is used in titles", () => {
+    const plan = buildBlueprint("ai agents for small business", [{ keyword: "ai agents for small business", searchVolume: 100, difficulty: 30, intent: "informational" }], "ai");
+    expect(plan.briefs[0]!.title).toBe("AI Agents For Small Business: The Complete Guide");
   });
 });

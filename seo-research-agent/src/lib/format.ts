@@ -30,3 +30,19 @@ export function formatRelativeTime(isoDate: string, now = new Date()) {
 export function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
+
+const ACRONYMS: Record<string, string> = {
+  ai: "AI", seo: "SEO", crm: "CRM", erp: "ERP", saas: "SaaS", apk: "APK", pdf: "PDF", api: "API", ui: "UI", ux: "UX",
+  usa: "USA", uk: "UK", diy: "DIY", faq: "FAQ", ios: "iOS", gpt: "GPT", chatgpt: "ChatGPT", llm: "LLM", vs: "vs",
+};
+
+/** Title Case that keeps acronyms and brand casing ("AI Agents", "ChatGPT", "vs"). */
+export function titleCase(value: string) {
+  return value.replace(/[A-Za-z0-9']+/g, (word) => ACRONYMS[word.toLowerCase()] ?? word.charAt(0).toUpperCase() + word.slice(1));
+}
+
+/** Sentence case that keeps acronyms ("AI agents for small business"). */
+export function sentenceCase(value: string) {
+  const cased = value.replace(/[A-Za-z0-9']+/g, (word) => ACRONYMS[word.toLowerCase()] ?? word);
+  return cased.charAt(0).toUpperCase() + cased.slice(1);
+}

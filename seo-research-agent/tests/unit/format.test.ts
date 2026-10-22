@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { capitalize, formatCurrencyMicros, formatNumber, formatRelativeTime } from "@/lib/format";
+import { capitalize, formatCurrencyMicros, formatNumber, formatRelativeTime, sentenceCase } from "@/lib/format";
 
 describe("display formatting", () => {
   it("formats numbers and treats missing values as a dash", () => {
@@ -27,5 +27,13 @@ describe("display formatting", () => {
   it("capitalizes labels", () => {
     expect(capitalize("commercial")).toBe("Commercial");
     expect(capitalize("")).toBe("");
+  });
+});
+
+describe("acronym-aware casing", () => {
+  it("keeps acronyms in sentence case", () => {
+    expect(sentenceCase("ai agents for small business")).toBe("AI agents for small business");
+    expect(sentenceCase("best crm vs hubspot")).toBe("Best CRM vs hubspot");
+    expect(sentenceCase("")).toBe("");
   });
 });
