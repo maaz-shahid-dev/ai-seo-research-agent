@@ -39,9 +39,8 @@ export const openAiEnvironmentSchema = z.object({
   OPENAI_MODEL: z.string().trim().min(1).max(100),
 });
 
-export const productionEnvironmentKeys = [
+export const runtimeReadinessKeys = [
   "DATABASE_URL",
-  "MIGRATION_DATABASE_URL",
   "AUTH_SECRET",
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
@@ -51,6 +50,11 @@ export const productionEnvironmentKeys = [
   "DATAFORSEO_PASSWORD",
   "OPENAI_API_KEY",
   "OPENAI_MODEL",
+] as const;
+
+export const productionEnvironmentKeys = [
+  ...runtimeReadinessKeys,
+  "MIGRATION_DATABASE_URL",
 ] as const;
 
 export type RuntimeEnvironment = z.infer<typeof runtimeEnvironmentSchema>;

@@ -16,6 +16,14 @@ describe("security headers", () => {
     const csp = createSecurityHeaders(false).find(({ key }) => key === "Content-Security-Policy")?.value;
     expect(csp).toContain("'unsafe-eval'");
   });
+
+  it("uses a strict nonce policy for rendered pages", () => {
+    const csp = createSecurityHeaders(true, "test-nonce")
+      .find(({ key }) => key === "Content-Security-Policy")?.value;
+    expect(csp).toContain("script-src 'self' 'nonce-test-nonce' 'strict-dynamic'");
+    expect(csp).toContain("style-src 'self' 'nonce-test-nonce'");
+    expect(csp).not.toContain("'unsafe-inline'");
+  });
 });
 
 describe("mutation request checks", () => {

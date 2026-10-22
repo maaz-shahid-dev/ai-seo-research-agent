@@ -6,7 +6,7 @@ import {
   listMissingEnvironmentKeys,
   migrationEnvironmentSchema,
   openAiEnvironmentSchema,
-  productionEnvironmentKeys,
+  runtimeReadinessKeys,
   runtimeEnvironmentSchema,
   upstashEnvironmentSchema,
 } from "./environment-schema";
@@ -36,6 +36,6 @@ export function getOpenAiEnvironment() {
 }
 
 export function getEnvironmentReadiness() {
-  const missing = listMissingEnvironmentKeys(process.env, productionEnvironmentKeys);
+  const missing = listMissingEnvironmentKeys(process.env, runtimeReadinessKeys);
   return { ready: missing.length === 0, missing };
 }

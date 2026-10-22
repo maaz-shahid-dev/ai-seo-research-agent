@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   listMissingEnvironmentKeys,
+  productionEnvironmentKeys,
+  runtimeReadinessKeys,
   runtimeEnvironmentSchema,
 } from "@/server/config/environment-schema";
 
@@ -35,5 +37,10 @@ describe("runtime environment", () => {
         ["DATABASE_URL", "AUTH_SECRET", "OPENAI_API_KEY"],
       ),
     ).toEqual(["AUTH_SECRET", "OPENAI_API_KEY"]);
+  });
+
+  it("keeps migration credentials out of runtime readiness", () => {
+    expect(runtimeReadinessKeys).not.toContain("MIGRATION_DATABASE_URL");
+    expect(productionEnvironmentKeys).toContain("MIGRATION_DATABASE_URL");
   });
 });

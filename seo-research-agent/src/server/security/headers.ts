@@ -3,8 +3,11 @@ export type SecurityHeader = {
   value: string;
 };
 
-export function createSecurityHeaders(isProduction: boolean): SecurityHeader[] {
-  const scriptSources = ["'self'", "'unsafe-inline'"];
+export function createSecurityHeaders(isProduction: boolean, nonce?: string): SecurityHeader[] {
+  const scriptSources = [
+    "'self'",
+    ...(nonce ? [`'nonce-${nonce}'`, "'strict-dynamic'"] : ["'unsafe-inline'"]),
+  ];
   const connectSources = ["'self'"];
 
   if (!isProduction) {
@@ -15,7 +18,7 @@ export function createSecurityHeaders(isProduction: boolean): SecurityHeader[] {
   const directives = [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
-    "style-src 'self' 'unsafe-inline'",
+    `style-src 'self' ${nonce ? `'nonce-${nonce}'` : "'unsafe-inline'"}`,
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     `connect-src ${connectSources.join(" ")}`,
