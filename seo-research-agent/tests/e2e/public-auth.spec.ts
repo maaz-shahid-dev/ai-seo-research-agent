@@ -26,6 +26,8 @@ test("public authentication pages are usable and accessible", async ({ page }) =
 test("protected workspace redirects anonymous visitors", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/sign-in$/);
+  await page.goto("/reports/30000000-0000-4000-8000-000000000001");
+  await expect(page).toHaveURL(/\/sign-in$/);
 });
 
 test("rendered pages use a nonce CSP and fit a mobile viewport", async ({ browser }) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, RotateCcw } from "lucide-react";
+import { Download, FileText, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 
 import { isRunInProgress, type ProjectDto, type ResearchRunDto } from "@/features/research/types";
@@ -81,10 +81,16 @@ function ResearchHeader({ run }: { run: ResearchRunDto }) {
         </div>
       </div>
       {run.status === "completed" && run.keywordCount > 0 ? (
-        <a href={`/api/research/${run.id}/export`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
-          <Download className="h-4 w-4" aria-hidden="true" />
-          Export CSV
-        </a>
+        <div className="flex shrink-0 gap-2">
+          <a href={`/reports/${run.id}`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+            <FileText className="h-4 w-4" aria-hidden="true" />
+            Report
+          </a>
+          <a href={`/api/research/${run.id}/export`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export CSV
+          </a>
+        </div>
       ) : null}
     </div>
   );
