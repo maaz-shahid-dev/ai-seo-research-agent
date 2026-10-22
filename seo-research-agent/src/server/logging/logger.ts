@@ -18,7 +18,7 @@ const redactPaths = [
   "*.apiKey",
 ];
 
-export const logger = pino({
+export const loggerOptions: pino.LoggerOptions = {
   level: process.env.LOG_LEVEL ?? "info",
   base: {
     service: "seo-research-agent",
@@ -28,4 +28,10 @@ export const logger = pino({
     paths: redactPaths,
     censor: "[REDACTED]",
   },
-});
+  // Code logs failures as { error }; without this, Error message, stack and cause are dropped.
+  serializers: {
+    error: pino.stdSerializers.errWithCause,
+  },
+};
+
+export const logger = pino(loggerOptions);
