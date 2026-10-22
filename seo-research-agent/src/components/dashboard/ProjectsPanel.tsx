@@ -117,13 +117,11 @@ export function ProjectsPanel({ projects, activeProjectId, onProjectsChange, onO
                 <div className="flex gap-1">
                   {project.status === "active" ? (
                     <>
-                      <Button
-                        size="sm"
-                        variant={project.id === activeProjectId ? "secondary" : "primary"}
-                        onClick={() => onOpen(project.id)}
-                      >
-                        Open
-                      </Button>
+                      {project.id === activeProjectId ? (
+                        <span className="px-3 py-1.5 text-sm font-medium text-indigo-700">Current</span>
+                      ) : (
+                        <Button variant="secondary" size="sm" onClick={() => onOpen(project.id)}>Open</Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => setEditingId(project.id)}>Rename</Button>
                       <Button variant="ghost" size="sm" disabled={pending} onClick={() => setArchived(project, true)}>
                         Archive

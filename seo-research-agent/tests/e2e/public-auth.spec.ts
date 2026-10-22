@@ -31,13 +31,21 @@ test("protected workspace redirects anonymous visitors", async ({ page }) => {
 test("rendered pages use a nonce CSP and fit a mobile viewport", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
+  const cspViolations: string[] = [];
+  page.on("console", (message) => {
+    if (message.text().includes("Content Security Policy")) cspViolations.push(message.text());
+  });
   const response = await page.goto("/sign-in");
+  await page.getByRole("button", { name: "Sign in" }).waitFor();
 
   const policy = response?.headers()["content-security-policy"] ?? "";
   expect(policy).toContain("'strict-dynamic'");
   expect(policy).toMatch(/'nonce-[^']+'/);
   expect(policy).not.toContain("'unsafe-inline'");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.goto("/sign-up");
+  await page.getByRole("button", { name: "Create account" }).waitFor();
+  expect(cspViolations).toEqual([]);
 
   await context.close();
 });

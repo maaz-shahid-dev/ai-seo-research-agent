@@ -330,6 +330,12 @@ describe("research dashboard", () => {
     await user.click(screen.getByRole("button", { name: "Create project" }));
 
     expect(await screen.findByText("Project created.")).toBeTruthy();
+    // The original project stays current; the new one is offered with "Open".
+    expect(screen.getByText("Current").closest("li")?.textContent).toContain("Acme");
+    expect(screen.getByText("New site").closest("li")?.textContent).toContain("Open");
+    await user.click(screen.getByRole("button", { name: "Research" }));
+    expect((screen.getByLabelText("Project") as HTMLSelectElement).value).toBe(project.id);
+
     const post = fetchMock.mock.calls.find(([url]) => String(url) === "/api/projects")!;
     expect(JSON.parse(String(post[1]!.body))).toEqual({
       name: "New site",

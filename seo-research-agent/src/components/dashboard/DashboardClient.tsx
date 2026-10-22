@@ -23,7 +23,10 @@ type DashboardClientProps = {
 export function DashboardClient({ user, initialProjects }: DashboardClientProps) {
   const [view, setView] = useState<View>("research");
   const [projects, setProjects] = useState(initialProjects);
-  const [chosenProjectId, setChosenProjectId] = useState<string | null>(null);
+  // Pin the starting project so creating a new one doesn't silently switch searches to it.
+  const [chosenProjectId, setChosenProjectId] = useState<string | null>(
+    () => initialProjects.find((item) => item.status === "active")?.id ?? null,
+  );
   const [selectedRun, setSelectedRun] = useState<ResearchRunDto | null>(null);
   const [query, setQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
