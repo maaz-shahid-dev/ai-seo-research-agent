@@ -19,7 +19,9 @@ export function Tabs<T extends string>({ label, tabs, selected, onSelect }: Tabs
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
     event.preventDefault();
-    const index = tabs.findIndex((tab) => tab.id === selected);
+    // Move from the focused tab (it may differ from the selected one).
+    const focused = tabs.findIndex((tab) => buttons.current.get(tab.id) === event.target);
+    const index = focused >= 0 ? focused : tabs.findIndex((tab) => tab.id === selected);
     const next = tabs[(index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length]!;
     onSelect(next.id);
     buttons.current.get(next.id)?.focus();

@@ -41,3 +41,7 @@ export function isJobInProgress(job: { status: JobStatus } | null) {
 export function isRunInProgress(run: Pick<ResearchRunDto, "status">) {
   return run.status === "queued" || run.status === "running";
 }
+
+/** GET /api/niche-ideas */
+export type NicheIdeaDto = { id: string; niche: string; seedKeyword: string; problem: string; audience: string };
+export type NicheIdeasResponse = { date: string | null; ideas: NicheIdeaDto[] };

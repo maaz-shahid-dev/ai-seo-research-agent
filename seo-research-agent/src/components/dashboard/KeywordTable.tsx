@@ -116,6 +116,9 @@ export function KeywordTable({ keywords, hasMore, loadingMore, onLoadMore, onSel
                     >
                       {item.keyword}
                     </button>
+                    {item.source === "autocomplete" ? (
+                      <span className="ml-2 align-middle"><Badge tone="neutral" title="Found with Google Autocomplete">Google suggest</Badge></span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatNumber(item.searchVolume)}</td>
                   <td className="px-4 py-2.5"><Sparkline values={trend} label={describeTrend(trend)} /></td>

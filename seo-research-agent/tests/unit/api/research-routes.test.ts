@@ -343,7 +343,7 @@ describe("research status API", () => {
     expect(mocks.getResearchRunById).toHaveBeenCalledWith(mocks.database, USER_ID, RUN_ID);
     expect(mocks.listKeywordResults).toHaveBeenCalledWith(mocks.database, USER_ID, RUN_ID, {
       afterId: 42,
-      limit: 100,
+      limit: 250,
     });
     expect(mocks.getLatestAiAnalysisForRun)
       .toHaveBeenCalledWith(mocks.database, USER_ID, RUN_ID);

@@ -8,13 +8,14 @@ import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
 import { Button } from "@/components/ui/Button";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
+import { DailyNichesView } from "./DailyNichesView";
 import { ProjectsPanel } from "./ProjectsPanel";
 import { RecentSearches } from "./RecentSearches";
 import { ResearchView } from "./ResearchView";
 import { SearchBar } from "./SearchBar";
 import { useRecentRuns } from "./useRecentRuns";
 
-type View = "research" | "projects";
+type View = "research" | "ideas" | "projects";
 
 type DashboardClientProps = {
   user: { name: string };
@@ -82,6 +83,12 @@ export function DashboardClient({ user, initialProjects }: DashboardClientProps)
     }
   }
 
+  /** Runs a search for a suggested niche and shows its results. */
+  function checkNiche(seed: string) {
+    setView("research");
+    retry(seed);
+  }
+
   function retry(seed: string) {
     setQuery(seed);
     idempotencyKey.current = null;
@@ -96,6 +103,7 @@ export function DashboardClient({ user, initialProjects }: DashboardClientProps)
             <span className="mr-2 font-semibold tracking-tight">SEO Research</span>
             <nav aria-label="Main" className="flex gap-1">
               <NavTab active={view === "research"} onClick={() => setView("research")}>Research</NavTab>
+              <NavTab active={view === "ideas"} onClick={() => setView("ideas")}>Daily niches</NavTab>
               <NavTab active={view === "projects"} onClick={() => setView("projects")}>Projects</NavTab>
             </nav>
           </div>
@@ -109,7 +117,9 @@ export function DashboardClient({ user, initialProjects }: DashboardClientProps)
       </header>
 
       <main className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6">
-        {view === "projects" ? (
+        {view === "ideas" ? (
+          <DailyNichesView onCheck={checkNiche} />
+        ) : view === "projects" ? (
           <ProjectsPanel
             projects={projects}
             activeProjectId={project?.id ?? null}

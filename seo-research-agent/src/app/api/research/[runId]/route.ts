@@ -14,6 +14,9 @@ import { noStore, readRequestId } from "@/server/http/request";
 
 type RouteContext = { params: Promise<{ runId: string }> };
 
+// Large enough for keyword ideas plus autocomplete suggestions in one page.
+const KEYWORD_PAGE_SIZE = 250;
+
 export async function GET(request: Request, context: RouteContext) {
   const requestId = readRequestId(request);
   try {
@@ -26,7 +29,7 @@ export async function GET(request: Request, context: RouteContext) {
     const completed = run.status === "completed";
     const [keywords, analysis, nicheScores, pendingSerpCount] = await Promise.all([
       completed
-        ? listKeywordResults(getDatabase(), user.id, run.id, { afterId, limit: 100 })
+        ? listKeywordResults(getDatabase(), user.id, run.id, { afterId, limit: KEYWORD_PAGE_SIZE })
         : Promise.resolve({ items: [], nextCursor: null }),
       getLatestAiAnalysisForRun(getDatabase(), user.id, run.id),
       completed ? listNicheScores(getDatabase(), user.id, run.id) : Promise.resolve(new Map<number, number>()),

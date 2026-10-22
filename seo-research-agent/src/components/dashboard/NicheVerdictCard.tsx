@@ -1,14 +1,9 @@
-"use client";
-
-import type { KeywordDto } from "@/features/research/types";
+import type { KeywordDto, SerpAnalysisDto } from "@/features/research/types";
 
 import { NicheVerdict } from "./NicheVerdict";
-import { useSerpAnalysis } from "./useSerpAnalysis";
 
 /** The headline answer for the searched topic: is this niche easy? */
-export function NicheVerdictCard({ runId, keyword }: { runId: string; keyword: KeywordDto }) {
-  const { data: serp, error } = useSerpAnalysis(runId, keyword.id);
-
+export function NicheVerdictCard({ keyword, serp, error }: { keyword: KeywordDto; serp: SerpAnalysisDto | null; error: string | null }) {
   return (
     <section aria-labelledby="verdict-title" className="rounded-xl border border-slate-200 bg-white p-5">
       <h2 id="verdict-title" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
