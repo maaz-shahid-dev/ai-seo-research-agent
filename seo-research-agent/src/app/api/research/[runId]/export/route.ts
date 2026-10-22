@@ -5,6 +5,7 @@ import { getResearchRunById, listKeywordResults } from "@/server/db/repositories
 import { AppError, errorResponse } from "@/server/http/errors";
 import { noStore, readRequestId } from "@/server/http/request";
 import { logger } from "@/server/logging/logger";
+import { csvCell } from "@/lib/csv";
 
 type RouteContext = { params: Promise<{ runId: string }> };
 
@@ -68,11 +69,4 @@ export async function GET(request: Request, context: RouteContext) {
   } catch (error) {
     return noStore(errorResponse(error, requestId));
   }
-}
-
-function csvCell(value: string | number | null) {
-  if (value === null) return "";
-  let text = String(value);
-  if (/^[=+\-@]/.test(text)) text = `'${text}`;
-  return `"${text.replaceAll('"', '""')}"`;
 }

@@ -96,15 +96,20 @@ describe("keyword table (niche hunter)", () => {
     expect(first.textContent).toContain("$0.50");
   });
 
-  it("shows the niche column only once scores exist, sorting nulls last", async () => {
+  it("sorts by opportunity first, nulls last, and filters by tier", async () => {
     const user = userEvent.setup({ delay: null });
-    const scored = [keyword(1, "a", { nicheScore: 40 }), keyword(2, "b"), keyword(3, "c", { nicheScore: 80 })];
-    const { rerender } = render(<KeywordTable keywords={[keyword(1, "a")]} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} onSelect={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: "Niche" })).toBeNull();
+    const rows = [keyword(1, "a"), keyword(2, "b"), keyword(3, "c")];
+    const opportunities = new Map([[1, { score: 40, tier: "solid" as const }], [3, { score: 80, tier: "prime" as const }]]);
+    const { rerender } = render(<KeywordTable keywords={rows} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} onSelect={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Opportunity" })).toBeNull();
 
-    rerender(<KeywordTable keywords={scored} hasMore={false} loadingMore={false} onLoadMore={vi.fn()} onSelect={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: "Niche" }));
+    rerender(<KeywordTable keywords={rows} opportunities={opportunities} exportName="x" hasMore={false} loadingMore={false} onLoadMore={vi.fn()} onSelect={vi.fn()} />);
     expect(names()).toEqual(["c", "a", "b"]);
+    expect(within(screen.getByRole("table")).getByText("Prime")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Opportunity" }));
+    expect(names()).toEqual(["a", "c", "b"]);
+    await user.selectOptions(screen.getByLabelText("Opportunity"), "prime");
+    expect(names()).toEqual(["c"]);
   });
 
   it("opens a keyword from its button or row", async () => {
@@ -225,6 +230,8 @@ describe("result tabs", () => {
 
     expect(screen.getByRole("tab", { name: "Questions 1" })).toBeTruthy();
     screen.getByRole("tab", { name: "Keywords 2" }).focus();
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Coverage" }));
     await user.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Questions 1" }));
     expect(screen.getByRole("tab", { name: "Questions 1" }).getAttribute("aria-selected")).toBe("true");

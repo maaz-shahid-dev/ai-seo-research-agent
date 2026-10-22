@@ -190,7 +190,7 @@ describe("research dashboard", () => {
     renderDashboard();
 
     expect(await screen.findByRole("heading", { name: "technical seo" })).toBeTruthy();
-    expect(await screen.findByText("technical seo audit")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "technical seo audit" })).toBeTruthy();
   });
 
   it("shows a loading skeleton, never an empty report, while a finished search loads", async () => {
@@ -206,7 +206,7 @@ describe("research dashboard", () => {
     expect(screen.queryByText("No keywords found for this topic.")).toBeNull();
 
     await act(async () => resolveDetail(json(completedDetail)()));
-    expect(await screen.findByText("technical seo audit")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "technical seo audit" })).toBeTruthy();
     expect(screen.queryByRole("status", { name: "Loading report" })).toBeNull();
   });
 
@@ -231,7 +231,7 @@ describe("research dashboard", () => {
     const recent = await screen.findByRole("navigation", { name: "Recent searches" });
     await user.click(within(recent).getByRole("button", { name: /^seo audit tool/ }));
 
-    expect(await screen.findByText("best seo audit tool")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "best seo audit tool" })).toBeTruthy();
     expect(within(recent).getByRole("button", { name: /^seo audit tool/ }).getAttribute("aria-current"))
       .toBe("true");
   });
@@ -281,7 +281,7 @@ describe("research dashboard", () => {
     });
     renderDashboard();
 
-    expect(await screen.findByText("technical seo audit")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "technical seo audit" })).toBeTruthy();
     expect(screen.getByText(/AI insights could not be generated/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Export CSV" })).toBeTruthy();
   });
@@ -318,7 +318,7 @@ describe("research dashboard", () => {
     expect(await screen.findByText("Connection problem. Retrying…")).toBeTruthy();
 
     await act(() => vi.advanceTimersByTimeAsync(5_100));
-    expect(await screen.findByText("technical seo audit")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "technical seo audit" })).toBeTruthy();
     expect(screen.queryByText("Connection problem. Retrying…")).toBeNull();
   });
 

@@ -11,6 +11,7 @@ import { ARTICLE_TYPE_LABELS } from "@/features/research/coverage";
 import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useStoredChecklist } from "@/hooks/useStoredChecklist";
+import { downloadFile } from "@/lib/download";
 import { formatNumber } from "@/lib/format";
 
 /** Briefs shown before "Show all", so the plan stays scannable. */
@@ -33,13 +34,7 @@ export function LaunchPlanView({ runId, seed, keywords, nicheType }: LaunchPlanV
   const doneCount = steps.filter((step) => progress.done.has(step.title)).length;
 
   function exportPlan() {
-    const file = new Blob([blueprintToMarkdown(blueprint, steps, progress.done)], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(file);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = launchPlanFileName(blueprint.seed);
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadFile(launchPlanFileName(blueprint.seed), blueprintToMarkdown(blueprint, steps, progress.done), "text/markdown;charset=utf-8");
   }
 
   if (blueprint.briefs.length === 0) return <p className="py-6 text-sm text-slate-500">No keywords to plan yet.</p>;

@@ -2,14 +2,18 @@
 
 import { useMemo, useState } from "react";
 
+import { slugify } from "@/features/research/blueprint";
 import { isQuestionKeyword } from "@/features/research/niche";
 import { classifyNicheType, NICHE_TYPE_PROFILES } from "@/features/research/niche-types";
+import { rankOpportunities, type Opportunity } from "@/features/research/opportunity";
 import type { AiAnalysisDto, KeywordDto, ProjectDto } from "@/features/research/types";
 import { Button } from "@/components/ui/Button";
 import { tabPanelProps, Tabs } from "@/components/ui/Tabs";
+import { useStoredChecklist } from "@/hooks/useStoredChecklist";
 
 import { ContentGapView } from "./ContentGapView";
 import { ContentPlanView } from "./ContentPlanView";
+import { CoverageView } from "./CoverageView";
 import { InsightsCard } from "./InsightsCard";
 import { IskillsView } from "./IskillsView";
 import { KeywordTable } from "./KeywordTable";
@@ -17,10 +21,11 @@ import { KgrView } from "./KgrView";
 import { LaunchPlanView } from "./LaunchPlanView";
 import { NicheTypeCard } from "./NicheTypeCard";
 import { NicheVerdictCard } from "./NicheVerdictCard";
+import { OverviewStats } from "./OverviewStats";
 import { SerpPanel } from "./SerpPanel";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
-type ResultTab = "overview" | "keywords" | "questions" | "plan" | "launch" | "kgr" | "iskills" | "content-gap";
+type ResultTab = "overview" | "keywords" | "coverage" | "questions" | "plan" | "launch" | "kgr" | "iskills" | "content-gap";
 const TABS_LABEL = "Result views";
 const BEST_OPPORTUNITY_COUNT = 5;
 
@@ -48,13 +53,19 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
     [keywords],
   );
   const nicheType = useMemo(() => classifyNicheType(seed?.keyword ?? "", keywords), [seed, keywords]);
-  const bestOpportunities = useMemo(() => topOpportunities(keywords, BEST_OPPORTUNITY_COUNT), [keywords]);
+  const opportunities = useMemo(() => rankOpportunities(keywords), [keywords]);
+  const bestOpportunities = useMemo(() => topOpportunities(keywords, opportunities, BEST_OPPORTUNITY_COUNT), [keywords, opportunities]);
+  const favorites = useStoredChecklist(`seo-research:favorites:${runId}`);
+  const exportName = `${slugify(seed?.keyword ?? "") || "research"}-keywords`;
   // One SERP analysis of the seed feeds both the verdict and the iSkills check.
   const seedSerp = useSerpAnalysis(runId, seed?.id ?? null);
 
-  const table = (rows: KeywordDto[], emptyMessage?: string) => (
+  const table = (rows: KeywordDto[], emptyMessage?: string, withExport = false) => (
     <KeywordTable
       keywords={rows}
+      opportunities={opportunities}
+      favorites={favorites}
+      exportName={withExport ? exportName : undefined}
       hasMore={hasMore}
       loadingMore={loadingMore}
       onLoadMore={onLoadMore}
@@ -72,6 +83,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
         tabs={[
           { id: "overview", label: "Overview" },
           { id: "keywords", label: "Keywords", count: keywords.length },
+          { id: "coverage", label: "Coverage" },
           { id: "questions", label: "Questions", count: questions.length },
           { id: "plan", label: "Content plan" },
           { id: "launch", label: "Launch plan" },
@@ -83,6 +95,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
       <div {...tabPanelProps(TABS_LABEL, tab)} className="space-y-3">
         {tab === "overview" ? (
           <>
+            <OverviewStats keywords={keywords} opportunities={opportunities} />
             {seed ? <NicheVerdictCard keyword={seed} serp={seedSerp.data} error={seedSerp.error} rpmUsd={NICHE_TYPE_PROFILES[nicheType].rpmUsd} /> : null}
             <NicheTypeCard type={nicheType} />
             <section aria-labelledby="best-title" className="space-y-2">
@@ -95,8 +108,9 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
             <InsightsCard analysis={analysis} />
           </>
         ) : null}
-        {tab === "keywords" ? table(keywords) : null}
-        {tab === "questions" ? table(questions, "No question keywords for this topic.") : null}
+        {tab === "keywords" ? table(keywords, undefined, true) : null}
+        {tab === "coverage" && seed ? <CoverageView seed={seed.keyword} keywords={keywords} onSelect={setSelected} exportName={exportName} /> : null}
+        {tab === "questions" ? table(questions, "No question keywords for this topic.", true) : null}
         {tab === "plan" && seed ? <ContentPlanView seed={seed.keyword} keywords={keywords} /> : null}
         {tab === "launch" && seed ? <LaunchPlanView runId={runId} seed={seed.keyword} keywords={keywords} nicheType={nicheType} /> : null}
         {tab === "kgr" ? <KgrView runId={runId} keywords={keywords} /> : null}
@@ -108,10 +122,9 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
   );
 }
 
-/** Highest niche score first; without scores, most searches at the lowest difficulty. */
-function topOpportunities(keywords: readonly KeywordDto[], count: number) {
-  const easiness = (item: KeywordDto) => (item.searchVolume ?? 0) * (100 - (item.difficulty ?? 50));
+/** Highest opportunity score first; unscored keywords last. */
+function topOpportunities(keywords: readonly KeywordDto[], opportunities: ReadonlyMap<number, Opportunity>, count: number) {
   return [...keywords]
-    .sort((a, b) => (b.nicheScore ?? -1) - (a.nicheScore ?? -1) || easiness(b) - easiness(a))
+    .sort((a, b) => (opportunities.get(b.id)?.score ?? -1) - (opportunities.get(a.id)?.score ?? -1))
     .slice(0, count);
 }

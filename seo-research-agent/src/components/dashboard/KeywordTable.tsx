@@ -4,23 +4,22 @@ import { ArrowDown, ArrowUp, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { competitionLevel, trendVolumes } from "@/features/research/niche";
+import type { Opportunity } from "@/features/research/opportunity";
 import type { KeywordDto } from "@/features/research/types";
-import { Badge, difficultyTone, nicheTone } from "@/components/ui/Badge";
+import { Badge, difficultyTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { describeTrend, Sparkline } from "@/components/ui/Sparkline";
+import { toCsv } from "@/lib/csv";
+import { downloadFile } from "@/lib/download";
 import { capitalize, formatCurrencyMicros, formatNumber } from "@/lib/format";
+
+import { EMPTY_FILTERS, ExportActions, FavoriteButton, FilterBar, OpportunityCell, type KeywordFilters } from "./KeywordTableParts";
 
 /** The filters only earn their space once the list is long enough to scan. */
 const FILTER_THRESHOLD = 10;
 
-type SortKey = "searchVolume" | "difficulty" | "cpcMicros" | "nicheScore";
+type SortKey = "searchVolume" | "difficulty" | "cpcMicros" | "opportunity";
 type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
-
-const MAX_DIFFICULTY_OPTIONS = [
-  { label: "Any difficulty", value: "" },
-  { label: "Difficulty ≤ 30", value: "30" },
-  { label: "Difficulty ≤ 50", value: "50" },
-];
 
 type KeywordTableProps = {
   keywords: KeywordDto[];
@@ -29,74 +28,102 @@ type KeywordTableProps = {
   onLoadMore: () => void;
   onSelect: (keyword: KeywordDto) => void;
   emptyMessage?: string;
+  /** Opportunity score and tier per keyword id. */
+  opportunities?: ReadonlyMap<number, Opportunity>;
+  favorites?: { done: ReadonlySet<string>; toggle: (id: string) => void };
+  /** File name stem for Copy / CSV / JSON of the shown rows; no export without it. */
+  exportName?: string;
 };
 
-export function KeywordTable({ keywords, hasMore, loadingMore, onLoadMore, onSelect, emptyMessage }: KeywordTableProps) {
-  const [filter, setFilter] = useState("");
-  const [maxDifficulty, setMaxDifficulty] = useState("");
-  const [sort, setSort] = useState<Sort>(null);
+export function KeywordTable({
+  keywords, hasMore, loadingMore, onLoadMore, onSelect, emptyMessage, opportunities, favorites, exportName,
+}: KeywordTableProps) {
+  const [filters, setFilters] = useState<KeywordFilters>(EMPTY_FILTERS);
+  // Until the user picks a column, rank by opportunity when scores are available.
+  const [chosenSort, setSort] = useState<Sort | undefined>(undefined);
+  const hasOpportunities = Boolean(opportunities);
+  const sort = useMemo<Sort>(
+    () => (chosenSort !== undefined ? chosenSort : hasOpportunities ? { key: "opportunity", direction: "desc" } : null),
+    [chosenSort, hasOpportunities],
+  );
 
   const visible = useMemo(() => {
-    const needle = filter.trim().toLowerCase();
-    const limit = maxDifficulty ? Number(maxDifficulty) : null;
-    const rows = keywords.filter(
-      (item) =>
-        (!needle || item.keyword.toLowerCase().includes(needle)) &&
-        (limit === null || (item.difficulty !== null && item.difficulty <= limit)),
-    );
-    return sort ? [...rows].sort((a, b) => compare(a[sort.key], b[sort.key], sort.direction)) : rows;
-  }, [filter, keywords, maxDifficulty, sort]);
+    const needle = filters.text.trim().toLowerCase();
+    const limit = filters.maxDifficulty ? Number(filters.maxDifficulty) : null;
+    const rows = keywords.filter((item) =>
+      (!needle || item.keyword.toLowerCase().includes(needle)) &&
+      (limit === null || (item.difficulty !== null && item.difficulty <= limit)) &&
+      (!filters.intent || item.intent === filters.intent) &&
+      (!filters.tier || opportunities?.get(item.id)?.tier === filters.tier) &&
+      (!filters.favoritesOnly || favorites?.done.has(String(item.id))));
+    if (!sort) return rows;
+    const valueOf = (item: KeywordDto) => (sort.key === "opportunity" ? opportunities?.get(item.id)?.score ?? null : item[sort.key]);
+    return [...rows].sort((a, b) => compare(valueOf(a), valueOf(b), sort.direction));
+  }, [filters, keywords, sort, opportunities, favorites]);
 
   function toggleSort(key: SortKey) {
     // Numbers people scan for "biggest" start descending; difficulty starts ascending.
     const first = key === "difficulty" ? "asc" : "desc";
-    setSort((current) =>
-      current?.key !== key ? { key, direction: first }
-        : current.direction === first ? { key, direction: first === "asc" ? "desc" : "asc" }
+    setSort(
+      sort?.key !== key ? { key, direction: first }
+        : sort.direction === first ? { key, direction: first === "asc" ? "desc" : "asc" }
           : null,
     );
   }
 
-  const showNiche = keywords.some((item) => item.nicheScore !== null);
+  function rowsForExport() {
+    return visible.map((item) => ({
+      keyword: item.keyword,
+      searchVolume: item.searchVolume,
+      difficulty: item.difficulty,
+      cpcUsd: item.cpcMicros === null ? null : item.cpcMicros / 1_000_000,
+      intent: item.intent,
+      opportunity: opportunities?.get(item.id)?.score ?? null,
+      tier: opportunities?.get(item.id)?.tier ?? null,
+      source: item.source,
+    }));
+  }
+
+  const showToolbar = keywords.length > FILTER_THRESHOLD || Boolean(exportName);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      {keywords.length > FILTER_THRESHOLD ? (
-        <div className="flex flex-wrap gap-2 border-b border-slate-200 p-3">
-          <label htmlFor="keyword-filter" className="sr-only">Filter keywords</label>
-          <input
-            id="keyword-filter"
-            type="search"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            placeholder="Filter keywords"
-            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm sm:max-w-64"
+      {showToolbar ? (
+        <div className="flex flex-col gap-2 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between">
+          <FilterBar
+            filters={filters}
+            onChange={(change) => setFilters((current) => ({ ...current, ...change }))}
+            showTier={Boolean(opportunities)}
+            showFavorites={Boolean(favorites)}
           />
-          <label htmlFor="max-difficulty" className="sr-only">Maximum difficulty</label>
-          <select
-            id="max-difficulty"
-            value={maxDifficulty}
-            onChange={(event) => setMaxDifficulty(event.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          >
-            {MAX_DIFFICULTY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          {exportName ? (
+            <ExportActions
+              count={visible.length}
+              onCopy={() => navigator.clipboard.writeText(visible.map((item) => item.keyword).join("\n"))}
+              onCsv={() => {
+                const rows = rowsForExport();
+                downloadFile(`${exportName}.csv`, toCsv(Object.keys(rows[0]!), rows.map((row) => Object.values(row))), "text/csv;charset=utf-8");
+              }}
+              onJson={() => downloadFile(`${exportName}.json`, `${JSON.stringify(rowsForExport(), null, 2)}\n`, "application/json")}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {/* relative: keeps absolutely positioned sr-only labels inside the scroll area. */}
       <div className="relative overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
+        <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="bg-slate-50 text-xs text-slate-500">
             <tr>
+              {favorites ? <th scope="col" className="w-8 pl-3"><span className="sr-only">Favorite</span></th> : null}
               <th scope="col" className="px-4 py-2.5 font-medium">Keyword</th>
+              {opportunities ? <SortHeader label="Opportunity" sortKey="opportunity" sort={sort} onSort={toggleSort} /> : null}
               <SortHeader label="Volume" sortKey="searchVolume" sort={sort} onSort={toggleSort} />
               <th scope="col" className="px-4 py-2.5 font-medium">Trend</th>
-              <SortHeader label="Difficulty" sortKey="difficulty" sort={sort} onSort={toggleSort} />
+              <SortHeader label="KD" sortKey="difficulty" sort={sort} onSort={toggleSort} />
               <SortHeader label="CPC" sortKey="cpcMicros" sort={sort} onSort={toggleSort} />
               <th scope="col" className="px-4 py-2.5 font-medium">Competition</th>
               <th scope="col" className="px-4 py-2.5 font-medium">Intent</th>
-              {showNiche ? <SortHeader label="Niche" sortKey="nicheScore" sort={sort} onSort={toggleSort} /> : null}
               <th scope="col" className="w-8"><span className="sr-only">Open SERP</span></th>
             </tr>
           </thead>
@@ -105,6 +132,11 @@ export function KeywordTable({ keywords, hasMore, loadingMore, onLoadMore, onSel
               const trend = trendVolumes(item.trend);
               return (
                 <tr key={item.id} className="group cursor-pointer hover:bg-slate-50" onClick={() => onSelect(item)}>
+                  {favorites ? (
+                    <td className="pl-3">
+                      <FavoriteButton keyword={item} active={favorites.done.has(String(item.id))} onToggle={() => favorites.toggle(String(item.id))} />
+                    </td>
+                  ) : null}
                   <td className="px-4 py-2.5">
                     {/* The button carries keyboard access; the row click is a pointer convenience. */}
                     <button
@@ -121,6 +153,7 @@ export function KeywordTable({ keywords, hasMore, loadingMore, onLoadMore, onSel
                       <span className="ml-2 align-middle"><Badge tone="neutral" title="Found with Google Autocomplete">Google suggest</Badge></span>
                     ) : null}
                   </td>
+                  {opportunities ? <td className="px-4 py-2.5"><OpportunityCell value={opportunities.get(item.id)} /></td> : null}
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatNumber(item.searchVolume)}</td>
                   <td className="px-4 py-2.5"><Sparkline values={trend} label={describeTrend(trend)} /></td>
                   <td className="px-4 py-2.5 text-right">
@@ -129,11 +162,6 @@ export function KeywordTable({ keywords, hasMore, loadingMore, onLoadMore, onSel
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrencyMicros(item.cpcMicros)}</td>
                   <td className="px-4 py-2.5 text-slate-600">{competitionLevel(item.competition) ?? <Dash />}</td>
                   <td className="px-4 py-2.5 text-slate-600">{item.intent === "unknown" ? <Dash /> : capitalize(item.intent)}</td>
-                  {showNiche ? (
-                    <td className="px-4 py-2.5 text-right">
-                      {item.nicheScore === null ? <Dash /> : <Badge tone={nicheTone(item.nicheScore)}>{item.nicheScore}</Badge>}
-                    </td>
-                  ) : null}
                   <td className="pr-3 text-slate-300 group-hover:text-indigo-600">
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </td>
