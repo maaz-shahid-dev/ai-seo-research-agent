@@ -1,6 +1,6 @@
 "use client";
 
-import { Command as CommandIcon, FolderKanban, History, Lightbulb, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Sparkles, X } from "lucide-react";
+import { Command as CommandIcon, FolderKanban, History, Lightbulb, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Sparkles, X } from "lucide-react";
 import { useCallback, useState, type ReactNode } from "react";
 
 import { useDialogFocus } from "@/hooks/useDialogFocus";
@@ -12,7 +12,7 @@ import { CommandPalette, useCommandPaletteShortcut } from "./CommandPalette";
 
 import { ThemeToggle } from "./ThemeToggle";
 
-export const APP_VIEWS = ["research", "ideas", "history", "projects"] as const;
+export const APP_VIEWS = ["research", "ideas", "history", "projects", "settings"] as const;
 export type AppView = (typeof APP_VIEWS)[number];
 
 const NAV_ITEMS: ReadonlyArray<{ view: AppView; label: string; icon: typeof Search }> = [
@@ -20,6 +20,7 @@ const NAV_ITEMS: ReadonlyArray<{ view: AppView; label: string; icon: typeof Sear
   { view: "ideas", label: "Daily niches", icon: Lightbulb },
   { view: "history", label: "History", icon: History },
   { view: "projects", label: "Projects", icon: FolderKanban },
+  { view: "settings", label: "Settings", icon: Settings },
 ];
 
 type AppShellProps = {

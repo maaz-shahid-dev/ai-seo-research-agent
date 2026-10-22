@@ -33,3 +33,21 @@ export function applyTheme(theme: Theme) {
 export function toggleTheme() {
   applyTheme(isDarkTheme() ? "light" : "dark");
 }
+
+export type Density = "comfortable" | "compact";
+export const DENSITY_COOKIE = "density";
+
+export function parseDensity(value: string | undefined | null): Density {
+  return value === "compact" ? "compact" : "comfortable";
+}
+
+/** Tighter table rows; like the theme, remembered in a cookie so the server renders it. */
+export function applyDensity(density: Density) {
+  document.documentElement.classList.toggle("density-compact", density === "compact");
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${DENSITY_COOKIE}=${density}; Path=/; Max-Age=${ONE_YEAR_SECONDS}; SameSite=Lax${secure}`;
+}
+
+export function currentDensity(): Density {
+  return document.documentElement.classList.contains("density-compact") ? "compact" : "comfortable";
+}

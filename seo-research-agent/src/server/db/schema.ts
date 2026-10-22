@@ -127,10 +127,17 @@ export const users = pgTable(
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    /** Preferences; null country means "use the project's market". */
+    defaultCountryCode: varchar("default_country_code", { length: 2 }),
+    theme: varchar("theme", { length: 5 }).$type<"light" | "dark">().default("light").notNull(),
+    tableDensity: varchar("table_density", { length: 12 }).$type<"comfortable" | "compact">().default("comfortable").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check("users_default_country_check", sql`${table.defaultCountryCode} is null or ${table.defaultCountryCode} ~ '^[A-Z]{2}$'`),
+    check("users_theme_check", sql`${table.theme} in ('light', 'dark')`),
+    check("users_table_density_check", sql`${table.tableDensity} in ('comfortable', 'compact')`),
     uniqueIndex("users_email_unique").on(table.email),
     index("users_status_created_idx").on(table.status, table.createdAt),
     check("users_email_normalized_check", sql`${table.email} = lower(btrim(${table.email}))`),

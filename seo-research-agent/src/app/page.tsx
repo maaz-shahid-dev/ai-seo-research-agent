@@ -9,7 +9,7 @@ import { researchRunIdSchema } from "@/features/research/schemas";
 import { requireActiveUser } from "@/server/auth";
 import { isDemoMode } from "@/server/config/environment-schema";
 import { getDatabase } from "@/server/db/client";
-import { ensureDefaultProject, listProjects } from "@/server/db/repositories";
+import { ensureDefaultProject, getUserSettings, listProjects } from "@/server/db/repositories";
 import { AppError } from "@/server/http/errors";
 import { pick } from "@/lib/url-state";
 
@@ -39,6 +39,9 @@ async function AuthenticatedDashboard({ searchParams }: { searchParams: SearchPa
     projects = await listProjects(database, user.id, { limit: 100 });
   }
 
+  const settings = await getUserSettings(database, user.id);
+  if (!settings) redirect("/sign-in");
+
   // Shared links reopen the same screen and search; anything invalid is ignored.
   const params = await searchParams;
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? null;
@@ -46,6 +49,7 @@ async function AuthenticatedDashboard({ searchParams }: { searchParams: SearchPa
 
   return (
     <DashboardClient
+      initialSettings={settings}
       initialView={pick(first(params.view), APP_VIEWS, "research")}
       initialRunId={run.success ? run.data : null}
       user={{ name: user.displayName }}

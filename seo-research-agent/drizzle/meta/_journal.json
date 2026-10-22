@@ -71,6 +71,13 @@
       "when": 1792695496855,
       "tag": "0009_niche_idea_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792698651967,
+      "tag": "0010_user_preferences",
+      "breakpoints": true
     }
   ]
 }

@@ -115,12 +115,14 @@ function mockApi(routes: Record<string, Handler | Handler[]>) {
 const json = (value: unknown, status = 200) => () =>
   new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 
+const settings = { email: "person@example.test", displayName: "Person", defaultCountryCode: null, theme: "light" as const, tableDensity: "comfortable" as const };
+
 const HISTORY = "GET /api/research";
 const DETAIL = `GET /api/research/${queuedRun.id}`;
 
 function renderDashboard(projects: ProjectDto[] = [project]) {
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-  render(<DashboardClient user={{ name: "Person" }} initialProjects={projects} />);
+  render(<DashboardClient user={{ name: "Person" }} initialSettings={settings} initialProjects={projects} />);
   return user;
 }
 
@@ -383,7 +385,7 @@ describe("research dashboard", () => {
       [DETAIL]: json(completedDetail),
       [`GET /api/research/${otherRun.id}`]: json({ ...completedDetail, run: otherRun }),
     });
-    render(<DashboardClient user={{ name: "Person" }} initialProjects={[project]} initialView="research" initialRunId={completedRun.id} />);
+    render(<DashboardClient user={{ name: "Person" }} initialSettings={settings} initialProjects={[project]} initialView="research" initialRunId={completedRun.id} />);
 
     expect(await screen.findByRole("heading", { name: "Technical SEO" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Best SEO Audit Tool" })).toBeNull();
@@ -393,8 +395,21 @@ describe("research dashboard", () => {
 
   it("starts on the screen named in the link", async () => {
     mockApi({ [HISTORY]: json({ runs: [completedRun] }), [DETAIL]: json(completedDetail) });
-    render(<DashboardClient user={{ name: "Person" }} initialProjects={[project]} initialView="history" />);
+    render(<DashboardClient user={{ name: "Person" }} initialSettings={settings} initialProjects={[project]} initialView="history" />);
     expect(await screen.findByRole("heading", { name: "History" })).toBeTruthy();
     await waitFor(() => expect(new URLSearchParams(window.location.search).get("view")).toBe("history"));
+  });
+
+  it("uses the saved default country and saves theme changes to the account", async () => {
+    const fetchMock = mockApi({ [HISTORY]: json({ runs: [] }), "PATCH /api/me/settings": json({ settings: { ...settings, theme: "dark" } }) });
+    render(<DashboardClient user={{ name: "Person" }} initialSettings={{ ...settings, defaultCountryCode: "PK" }} initialProjects={[project]} />);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    expect(await screen.findByLabelText("Country")).toHaveProperty("value", "PK");
+    await user.click(screen.getAllByRole("button", { name: "Switch to dark theme" })[0]!);
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(true));
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH")!;
+    expect(JSON.parse(String(patch[1]!.body))).toEqual({ theme: "dark" });
+    document.documentElement.classList.remove("dark");
   });
 });

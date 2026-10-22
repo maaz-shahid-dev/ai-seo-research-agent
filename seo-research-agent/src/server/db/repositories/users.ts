@@ -145,3 +145,33 @@ export async function replacePasswordHash(
 
   return Boolean(updated);
 }
+
+const settingsSelection = {
+  email: users.email,
+  displayName: users.displayName,
+  defaultCountryCode: users.defaultCountryCode,
+  theme: users.theme,
+  tableDensity: users.tableDensity,
+};
+
+export type UserSettingsUpdate = Partial<{
+  displayName: string;
+  defaultCountryCode: string | null;
+  theme: "light" | "dark";
+  tableDensity: "comfortable" | "compact";
+}>;
+
+export async function getUserSettings(database: DatabaseClient, userId: string) {
+  const [settings] = await database.select(settingsSelection).from(users).where(eq(users.id, userId)).limit(1);
+  return settings ?? null;
+}
+
+/** Saves only the given fields; returns the full settings, or null for an unknown user. */
+export async function updateUserSettings(database: DatabaseClient, userId: string, update: UserSettingsUpdate) {
+  const [settings] = await database
+    .update(users)
+    .set({ ...update, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning(settingsSelection);
+  return settings ?? null;
+}

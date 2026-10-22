@@ -73,3 +73,4 @@ describe("niche idea reactions and history", () => {
     expect((await listNicheIdeaReactions(repo, OWNER, [MISSING])).size).toBe(0);
   });
 });
+

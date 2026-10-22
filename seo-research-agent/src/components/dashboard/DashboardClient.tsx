@@ -6,11 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import { replaceProject } from "@/features/projects/client";
 import { MARKET_LANGUAGE } from "@/features/research/markets";
 import type { ProjectDto, ResearchRunDto } from "@/features/research/types";
+import type { SettingsDto } from "@/features/settings/schemas";
 import { AppShell, type AppView } from "@/components/layout/AppShell";
 import type { Command } from "@/lib/commands";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { apiRequest, errorMessage } from "@/lib/api-client";
+import { applyDensity, applyTheme, currentDensity, isDarkTheme, subscribeTheme } from "@/lib/theme";
 import { writeParams } from "@/lib/url-state";
 
 import { DailyNichesView } from "./DailyNichesView";
@@ -20,6 +22,7 @@ import { RecentSearches } from "./RecentSearches";
 import { OPEN_RESULT_TAB_EVENT, RESULT_TAB_LABELS, RESULT_TABS } from "./ResearchResults";
 import { ResearchView } from "./ResearchView";
 import { SearchBar } from "./SearchBar";
+import { SettingsView } from "./SettingsView";
 import { useRecentRuns } from "./useRecentRuns";
 
 type DashboardClientProps = {
@@ -27,12 +30,35 @@ type DashboardClientProps = {
   initialProjects: ProjectDto[];
   /** True when the server runs on built-in demo data instead of live providers. */
   demo?: boolean;
+  /** Profile and preferences saved to the account. */
+  initialSettings: SettingsDto;
   /** Screen and search from a shared or refreshed URL (validated on the server). */
   initialView?: AppView;
   initialRunId?: string | null;
 };
 
-export function DashboardClient({ user, initialProjects, demo = false, initialView = "research", initialRunId = null }: DashboardClientProps) {
+export function DashboardClient({ user, initialProjects, demo = false, initialSettings, initialView = "research", initialRunId = null }: DashboardClientProps) {
+  const [settings, setSettings] = useState(initialSettings);
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  // On a new device the cookies may not match the account yet; the account wins.
+  useEffect(() => {
+    if (isDarkTheme() !== (initialSettings.theme === "dark")) applyTheme(initialSettings.theme);
+    if (currentDensity() !== initialSettings.tableDensity) applyDensity(initialSettings.tableDensity);
+  }, [initialSettings.theme, initialSettings.tableDensity]);
+
+  // The sidebar toggle and the command palette change the theme directly; keep the account in step.
+  useEffect(() => subscribeTheme(() => {
+    const theme = isDarkTheme() ? "dark" : "light";
+    if (theme === settingsRef.current.theme) return;
+    setSettings((current) => ({ ...current, theme }));
+    // Best effort: the theme still applies in this browser if saving fails.
+    apiRequest("/api/me/settings", { method: "PATCH", body: JSON.stringify({ theme }) }).catch(() => undefined);
+  }), []);
+
   const [view, setView] = useState<AppView>(initialView);
   // A search named in the URL; cleared once it is shown or turns out to be unavailable.
   const [linkedRunId, setLinkedRunId] = useState<string | null>(initialRunId);
@@ -54,7 +80,7 @@ export function DashboardClient({ user, initialProjects, demo = false, initialVi
   // Fall back to the first active project if the chosen one was archived.
   const project = activeProjects.find((item) => item.id === chosenProjectId) ?? activeProjects[0] ?? null;
   const recent = useRecentRuns(project?.id ?? null);
-  const country = chosenCountry ?? project?.countryCode ?? "US";
+  const country = chosenCountry ?? settings.defaultCountryCode ?? project?.countryCode ?? "US";
   // Show the user's pick, otherwise the latest search, so results survive a reload.
   const linkedRun = linkedRunId ? recent.runs.find((run) => run.id === linkedRunId) ?? null : null;
   // Wait for a linked search older than the recent list instead of flashing the latest one.
@@ -146,7 +172,7 @@ export function DashboardClient({ user, initialProjects, demo = false, initialVi
   }
 
   const commands: Command[] = [
-    ...([["research", "Research"], ["ideas", "Daily niches"], ["history", "History"], ["projects", "Projects"]] as const).map(([id, label]) => ({
+    ...([["research", "Research"], ["ideas", "Daily niches"], ["history", "History"], ["projects", "Projects"], ["settings", "Settings"]] as const).map(([id, label]) => ({
       id: `view-${id}`, label, group: "Go to", run: () => setView(id),
     })),
     ...(displayedRun?.status === "completed"
@@ -193,7 +219,7 @@ export function DashboardClient({ user, initialProjects, demo = false, initialVi
     <AppShell
       view={view}
       onNavigate={setView}
-      user={user}
+      user={{ ...user, name: settings.displayName }}
       demo={demo}
       onSignOut={() => void signOut({ redirectTo: "/sign-in" })}
       sidebar={sidebar}
@@ -201,6 +227,15 @@ export function DashboardClient({ user, initialProjects, demo = false, initialVi
     >
       {view === "ideas" ? (
         <DailyNichesView onCheck={checkNiche} />
+      ) : view === "settings" ? (
+        <SettingsView
+          settings={settings}
+          onSaved={(saved) => {
+            setSettings(saved);
+            if (isDarkTheme() !== (saved.theme === "dark")) applyTheme(saved.theme);
+            if (currentDensity() !== saved.tableDensity) applyDensity(saved.tableDensity);
+          }}
+        />
       ) : view === "history" && project ? (
         <HistoryView key={project.id} projectId={project.id} projectName={project.name} onOpen={openRun} onDeleted={forgetRun} />
       ) : view === "projects" ? (
