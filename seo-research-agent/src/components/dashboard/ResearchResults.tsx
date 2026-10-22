@@ -12,6 +12,7 @@ import { tabPanelProps, Tabs } from "@/components/ui/Tabs";
 import { useStoredChecklist } from "@/hooks/useStoredChecklist";
 import { pick, readParam, writeParams } from "@/lib/url-state";
 
+import { ClustersView } from "./ClustersView";
 import { ContentGapView } from "./ContentGapView";
 import { ContentPlanView } from "./ContentPlanView";
 import { CoverageView } from "./CoverageView";
@@ -26,7 +27,7 @@ import { OverviewStats } from "./OverviewStats";
 import { SerpPanel } from "./SerpPanel";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
-const RESULT_TABS = ["overview", "keywords", "coverage", "questions", "plan", "launch", "kgr", "iskills", "content-gap"] as const;
+const RESULT_TABS = ["overview", "keywords", "coverage", "clusters", "questions", "plan", "launch", "kgr", "iskills", "content-gap"] as const;
 type ResultTab = (typeof RESULT_TABS)[number];
 const TABS_LABEL = "Result views";
 const BEST_OPPORTUNITY_COUNT = 5;
@@ -89,6 +90,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
           { id: "overview", label: "Overview" },
           { id: "keywords", label: "Keywords", count: keywords.length },
           { id: "coverage", label: "Coverage" },
+          { id: "clusters", label: "Clusters" },
           { id: "questions", label: "Questions", count: questions.length },
           { id: "plan", label: "Content plan" },
           { id: "launch", label: "Launch plan" },
@@ -115,6 +117,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
         ) : null}
         {tab === "keywords" ? table(keywords, undefined, true) : null}
         {tab === "coverage" && seed ? <CoverageView seed={seed.keyword} keywords={keywords} onSelect={setSelected} exportName={exportName} /> : null}
+        {tab === "clusters" && seed ? <ClustersView seed={seed.keyword} keywords={keywords} onSelect={setSelected} /> : null}
         {tab === "questions" ? table(questions, "No question keywords for this topic.", true) : null}
         {tab === "plan" && seed ? <ContentPlanView seed={seed.keyword} keywords={keywords} /> : null}
         {tab === "launch" && seed ? <LaunchPlanView runId={runId} seed={seed.keyword} keywords={keywords} nicheType={nicheType} /> : null}

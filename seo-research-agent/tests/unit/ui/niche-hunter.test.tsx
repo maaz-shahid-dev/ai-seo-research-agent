@@ -233,6 +233,8 @@ describe("result tabs", () => {
     await user.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Coverage" }));
     await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Clusters" }));
+    await user.keyboard("{ArrowRight}");
     expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Questions 1" }));
     expect(screen.getByRole("tab", { name: "Questions 1" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.queryByRole("button", { name: "running shoes" })).toBeNull();

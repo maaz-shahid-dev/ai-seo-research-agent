@@ -16,11 +16,11 @@ export type CoverageKeyword = {
 
 export type ArticleType = "pillar" | "how-to" | "best-of" | "comparison" | "guide";
 
-export type ContentCluster = {
+export type ContentCluster<T extends CoverageKeyword = CoverageKeyword> = {
   topic: string;
   articleType: ArticleType;
   mainKeyword: string;
-  keywords: CoverageKeyword[];
+  keywords: T[];
   totalVolume: number;
   averageDifficulty: number | null;
 };
@@ -35,7 +35,7 @@ const IGNORED_TOPIC_WORDS = new Set([
   "vs", "versus", "near", "me", "without", "good", "cheap", "buy", "free", "2024", "2025", "2026", "list", "ideas",
 ]);
 
-export function buildContentPlan(seedInput: string, keywords: readonly CoverageKeyword[]) {
+export function buildContentPlan<T extends CoverageKeyword>(seedInput: string, keywords: readonly T[]) {
   const seedWords = new Set(meaningfulWords(normalizePhrase(seedInput)).flatMap((word) => [word, word.replace(/s$/, ""), `${word}s`]));
   const topicWords = keywords.map((item) =>
     meaningfulWords(normalizePhrase(item.keyword)).filter((word) => !seedWords.has(word) && !IGNORED_TOPIC_WORDS.has(word) && word.length > 2));
@@ -48,7 +48,7 @@ export function buildContentPlan(seedInput: string, keywords: readonly CoverageK
     }
   });
 
-  const groups = new Map<string, CoverageKeyword[]>();
+  const groups = new Map<string, T[]>();
   keywords.forEach((item, index) => {
     const words = topicWords[index]!;
     const topic = words.length === 0
@@ -57,7 +57,7 @@ export function buildContentPlan(seedInput: string, keywords: readonly CoverageK
     groups.set(topic, [...(groups.get(topic) ?? []), item]);
   });
 
-  const clusters: ContentCluster[] = [...groups.entries()].map(([topic, items]) => {
+  const clusters: ContentCluster<T>[] = [...groups.entries()].map(([topic, items]) => {
     const sorted = [...items].sort((a, b) => (b.searchVolume ?? 0) - (a.searchVolume ?? 0));
     const difficulties = items.flatMap((item) => (item.difficulty === null ? [] : [item.difficulty]));
     return {
