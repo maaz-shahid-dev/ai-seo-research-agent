@@ -49,6 +49,22 @@ export async function createProject(
   return project;
 }
 
+export const DEFAULT_PROJECT_NAME = "My research";
+
+/**
+ * Gives a brand-new workspace one project so the first search needs no setup.
+ * A single conditional insert keeps repeated or concurrent calls from creating
+ * extra projects, and owners who already have any project are left untouched.
+ */
+export async function ensureDefaultProject(database: DatabaseClient, ownerId: string) {
+  await database.execute(sql`
+    insert into ${projects} ("owner_id", "name")
+    select ${ownerId}, ${DEFAULT_PROJECT_NAME}
+    where not exists (select 1 from ${projects} where ${projects.ownerId} = ${ownerId})
+    on conflict do nothing
+  `);
+}
+
 export async function getProjectById(
   database: DatabaseClient,
   ownerIdInput: string,

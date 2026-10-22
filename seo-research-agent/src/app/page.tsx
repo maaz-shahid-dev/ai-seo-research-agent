@@ -5,7 +5,7 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { toProjectDto } from "@/features/projects/dto";
 import { requireActiveUser } from "@/server/auth";
 import { getDatabase } from "@/server/db/client";
-import { listProjects } from "@/server/db/repositories";
+import { ensureDefaultProject, listProjects } from "@/server/db/repositories";
 import { AppError } from "@/server/http/errors";
 
 export default function HomePage() {
@@ -25,7 +25,13 @@ async function AuthenticatedDashboard() {
     throw error;
   }
 
-  const projects = await listProjects(getDatabase(), user.id, { limit: 100 });
+  const database = getDatabase();
+  let projects = await listProjects(database, user.id, { limit: 100 });
+  if (projects.items.length === 0) {
+    await ensureDefaultProject(database, user.id);
+    projects = await listProjects(database, user.id, { limit: 100 });
+  }
+
   return (
     <DashboardClient
       user={{ name: user.displayName, role: user.role }}
