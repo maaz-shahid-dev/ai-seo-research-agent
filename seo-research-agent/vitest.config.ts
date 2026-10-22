@@ -13,6 +13,8 @@ export default defineConfig({
     // PGlite and jsdom are intentionally resource-heavy; bounding workers
     // prevents CI contention from turning otherwise deterministic tests flaky.
     maxWorkers: 4,
+    // jsdom UI tests can be starved by parallel PGlite boots; allow headroom.
+    testTimeout: 15_000,
     include: [
       "tests/unit/**/*.test.{ts,tsx}",
       "tests/integration/**/*.test.{ts,tsx}",
