@@ -14,9 +14,11 @@ test("public authentication pages are usable and accessible", async ({ page }) =
 
   await Promise.all([
     page.waitForURL(/\/sign-up$/, { timeout: 30_000 }),
-    page.getByRole("link", { name: /Create account/i }).click(),
+    page.getByRole("link", { name: "Create an account" }).click(),
   ]);
-  await expect(page.getByRole("heading", { name: "Create account" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+  await expect(page.getByText("At least 12 characters.")).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await expect(page.getByLabel("Password", { exact: true }))
     .toHaveAttribute("autocomplete", "new-password");
 });
