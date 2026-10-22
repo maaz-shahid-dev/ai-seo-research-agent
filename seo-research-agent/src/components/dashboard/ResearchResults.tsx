@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 
 import { isQuestionKeyword } from "@/features/research/niche";
-import type { KeywordDto, ProjectDto } from "@/features/research/types";
+import type { AiAnalysisDto, KeywordDto, ProjectDto } from "@/features/research/types";
 import { tabPanelProps, Tabs } from "@/components/ui/Tabs";
 
 import { ContentGapView } from "./ContentGapView";
+import { InsightsCard } from "./InsightsCard";
 import { KeywordTable } from "./KeywordTable";
 import { NicheVerdictCard } from "./NicheVerdictCard";
 import { SerpPanel } from "./SerpPanel";
@@ -16,6 +17,7 @@ const TABS_LABEL = "Result views";
 
 type ResearchResultsProps = {
   runId: string;
+  analysis: AiAnalysisDto | null;
   project: ProjectDto;
   onProjectUpdate: (project: ProjectDto) => void;
   keywords: KeywordDto[];
@@ -24,8 +26,8 @@ type ResearchResultsProps = {
   onLoadMore: () => void;
 };
 
-/** Keywords, question keywords and content gap tabs, plus the SERP side panel. */
-export function ResearchResults({ runId, project, onProjectUpdate, keywords, hasMore, loadingMore, onLoadMore }: ResearchResultsProps) {
+/** Niche verdict, AI summary, keyword/question/content-gap tabs and the SERP side panel. */
+export function ResearchResults({ runId, analysis, project, onProjectUpdate, keywords, hasMore, loadingMore, onLoadMore }: ResearchResultsProps) {
   const [tab, setTab] = useState<ResultTab>("keywords");
   const [selected, setSelected] = useState<KeywordDto | null>(null);
   const questions = useMemo(() => keywords.filter((item) => isQuestionKeyword(item.keyword)), [keywords]);
@@ -50,7 +52,9 @@ export function ResearchResults({ runId, project, onProjectUpdate, keywords, has
 
   return (
     <div className="space-y-3">
+      {/* The verdict answers the main question first; the AI summary adds context. */}
       {seed ? <NicheVerdictCard runId={runId} keyword={seed} /> : null}
+      <InsightsCard analysis={analysis} />
       <Tabs
         label={TABS_LABEL}
         selected={tab}

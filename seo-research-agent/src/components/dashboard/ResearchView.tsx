@@ -7,7 +7,6 @@ import { isRunInProgress, type ProjectDto, type ResearchRunDto } from "@/feature
 import { Button, buttonStyles } from "@/components/ui/Button";
 import { formatRelativeTime } from "@/lib/format";
 
-import { InsightsCard } from "./InsightsCard";
 import { ResearchResults } from "./ResearchResults";
 import { useResearchRun } from "./useResearchRun";
 
@@ -37,18 +36,16 @@ export function ResearchView({ initialRun, project, onProjectUpdate, onRunChange
       {isRunInProgress(run) ? (
         <ResearchProgress run={run} />
       ) : run.status === "completed" ? (
-        <>
-          <InsightsCard analysis={analysis} />
-          <ResearchResults
-            runId={run.id}
-            project={project}
-            onProjectUpdate={onProjectUpdate}
-            keywords={keywords}
-            hasMore={nextCursor !== null}
-            loadingMore={loadingMore}
-            onLoadMore={loadMore}
-          />
-        </>
+        <ResearchResults
+          runId={run.id}
+          analysis={analysis}
+          project={project}
+          onProjectUpdate={onProjectUpdate}
+          keywords={keywords}
+          hasMore={nextCursor !== null}
+          loadingMore={loadingMore}
+          onLoadMore={loadMore}
+        />
       ) : (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-5" role="alert">
           <p className="text-sm text-rose-800">

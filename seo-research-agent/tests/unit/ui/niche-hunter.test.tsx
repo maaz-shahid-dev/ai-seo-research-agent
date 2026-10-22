@@ -213,6 +213,7 @@ describe("result tabs", () => {
     render(
       <ResearchResults
         runId={RUN_ID}
+        analysis={null}
         project={project}
         onProjectUpdate={vi.fn()}
         keywords={[keyword(1, "running shoes"), keyword(2, "how to lace running shoes")]}
@@ -279,6 +280,7 @@ describe("niche verdict card", () => {
     render(
       <ResearchResults
         runId={RUN_ID}
+        analysis={null}
         project={project}
         onProjectUpdate={vi.fn()}
         keywords={[keyword(1, "running shoes", { source: "seed", searchVolume: 100_000 })]}
