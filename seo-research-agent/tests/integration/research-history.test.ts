@@ -4,7 +4,14 @@ import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { DatabaseClient } from "@/server/db/client";
-import { deleteResearchRun, listResearchRuns, requestContentGap, requestSerpAnalyses } from "@/server/db/repositories";
+import {
+  deleteResearchRun,
+  listKeywordResultsByIds,
+  listResearchRuns,
+  requestContentGap,
+  requestSerpAnalyses,
+  saveAllintitleCounts,
+} from "@/server/db/repositories";
 import * as schema from "@/server/db/schema";
 import { createTestDatabase, PGLITE_SETUP_TIMEOUT_MS } from "../helpers/pglite";
 
@@ -59,6 +66,32 @@ describe("research history", () => {
     const second = await listResearchRuns(repo, OWNER, { projectId, limit: 2, cursor: first.nextCursor! });
     expect(second.items.map((run) => run.query)).toEqual(["trail running shoes", "running shoes"]);
     expect(second.nextCursor).toBeNull();
+  });
+
+  it("reads and stores allintitle counts only within the owner's run", async () => {
+    const run = await seedRun("kgr topic", 2);
+    const other = await seedRun("other topic", 3);
+    const rows = await database.insert(schema.keywordResults).values(["kgr topic tips", "kgr topic guide"].map((keyword) => ({
+      ownerId: OWNER, runId: run.id, keyword, normalizedKeyword: keyword, source: "related" as const, provider: "dataforseo",
+      retrievedAt: new Date(), countryCode: "US", languageCode: "en", searchVolume: 90,
+    }))).returning();
+    const [elsewhere] = await database.insert(schema.keywordResults).values({
+      ownerId: OWNER, runId: other.id, keyword: "other", normalizedKeyword: "other", source: "seed", provider: "dataforseo",
+      retrievedAt: new Date(), countryCode: "US", languageCode: "en",
+    }).returning();
+    const ids = [rows[0]!.id, rows[1]!.id, elsewhere!.id];
+
+    expect((await listKeywordResultsByIds(repo, OWNER, run.id, ids)).map((row) => row.id)).toEqual([rows[0]!.id, rows[1]!.id]);
+    expect(await listKeywordResultsByIds(repo, OTHER, run.id, ids)).toEqual([]);
+    expect(await listKeywordResultsByIds(repo, OWNER, run.id, [])).toEqual([]);
+
+    await saveAllintitleCounts(repo, OTHER, run.id, [{ keywordResultId: rows[0]!.id, allintitleCount: 999 }]);
+    await saveAllintitleCounts(repo, OWNER, run.id, [{ keywordResultId: rows[0]!.id, allintitleCount: 12 }, { keywordResultId: elsewhere!.id, allintitleCount: 5 }]);
+    const stored = await listKeywordResultsByIds(repo, OWNER, run.id, ids);
+    expect(stored.map((row) => row.allintitleCount)).toEqual([12, null]);
+    expect(stored[0]!.allintitleCheckedAt).toBeInstanceOf(Date);
+    const [untouched] = await database.select().from(schema.keywordResults).where(eq(schema.keywordResults.id, elsewhere!.id));
+    expect(untouched!.allintitleCount).toBeNull();
   });
 
   it("deletes a run with everything collected for it, only for its owner", async () => {

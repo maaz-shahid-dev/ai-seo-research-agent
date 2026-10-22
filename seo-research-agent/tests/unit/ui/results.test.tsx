@@ -24,6 +24,7 @@ function keywords(count: number): KeywordDto[] {
     countryCode: "US",
     languageCode: "en",
     nicheScore: null,
+    allintitleCount: null,
   }));
 }
 

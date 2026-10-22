@@ -22,7 +22,7 @@ afterEach(() => {
 function keyword(id: number, name: string, overrides: Partial<KeywordDto> = {}): KeywordDto {
   return {
     id, keyword: name, source: "related", intent: "informational", searchVolume: 1_000, cpcMicros: null, competition: null,
-    difficulty: 20, trend: null, countryCode: "US", languageCode: "en", nicheScore: null, ...overrides,
+    difficulty: 20, trend: null, countryCode: "US", languageCode: "en", nicheScore: null, allintitleCount: null, ...overrides,
   };
 }
 

@@ -100,7 +100,9 @@ export function createDemoDataForSeoClient(): DataForSeoClient {
       const features = ["organic", "people_also_ask", ...(random.chance(0.4) ? ["ai_overview"] : [])];
       return {
         taskId: `demo-serp-${hashString(keyword)}`, cost: 0, keyword, checkedAt: new Date().toISOString(),
-        totalResults: random.int(200_000, 90_000_000), features, items, outcome: "complete", warning: null,
+        // allintitle: queries match far fewer pages; keep counts in a realistic KGR range.
+        totalResults: keyword.startsWith("allintitle:") ? random.int(2, 400) : random.int(200_000, 90_000_000),
+        features, items, outcome: "complete", warning: null,
       };
     },
 

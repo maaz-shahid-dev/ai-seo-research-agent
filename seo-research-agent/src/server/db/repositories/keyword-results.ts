@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray } from "drizzle-orm";
 
 import type { DatabaseClient } from "../client";
 import { keywordResults, type NewKeywordResult } from "../schema";
@@ -148,4 +148,42 @@ export async function getKeywordResult(
     ))
     .limit(1);
   return keyword ?? null;
+}
+
+/** The run's keywords with these ids; ids from other runs or owners are ignored. */
+export async function listKeywordResultsByIds(
+  database: DatabaseClient,
+  ownerId: string,
+  runId: string,
+  keywordResultIds: readonly number[],
+) {
+  if (keywordResultIds.length === 0) return [];
+  return database
+    .select()
+    .from(keywordResults)
+    .where(and(
+      eq(keywordResults.ownerId, ownerId),
+      eq(keywordResults.runId, runId),
+      inArray(keywordResults.id, [...keywordResultIds]),
+    ))
+    .orderBy(asc(keywordResults.id));
+}
+
+export async function saveAllintitleCounts(
+  database: DatabaseClient,
+  ownerId: string,
+  runId: string,
+  counts: ReadonlyArray<{ keywordResultId: number; allintitleCount: number }>,
+  checkedAt = new Date(),
+) {
+  for (const { keywordResultId, allintitleCount } of counts) {
+    await database
+      .update(keywordResults)
+      .set({ allintitleCount, allintitleCheckedAt: checkedAt })
+      .where(and(
+        eq(keywordResults.id, keywordResultId),
+        eq(keywordResults.ownerId, ownerId),
+        eq(keywordResults.runId, runId),
+      ));
+  }
 }

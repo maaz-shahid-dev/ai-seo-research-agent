@@ -44,6 +44,7 @@ export function toKeywordDto(keyword: KeywordResult, nicheScores?: ReadonlyMap<n
     countryCode: keyword.countryCode,
     languageCode: keyword.languageCode,
     nicheScore: nicheScores?.get(keyword.id) ?? null,
+    allintitleCount: keyword.allintitleCount,
   };
 }
 

@@ -320,6 +320,9 @@ export const keywordResults = pgTable(
     competition: numeric("competition", { precision: 5, scale: 4 }),
     difficulty: smallint("difficulty"),
     trend: jsonb("trend").$type<TrendPoint[]>(),
+    /** Google results with every word in the title (for the Keyword Golden Ratio); null until checked. */
+    allintitleCount: integer("allintitle_count"),
+    allintitleCheckedAt: timestamp("allintitle_checked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -353,6 +356,10 @@ export const keywordResults = pgTable(
     check(
       "keyword_results_search_volume_check",
       sql`${table.searchVolume} is null or ${table.searchVolume} >= 0`,
+    ),
+    check(
+      "keyword_results_allintitle_check",
+      sql`${table.allintitleCount} is null or ${table.allintitleCount} >= 0`,
     ),
     check("keyword_results_cpc_check", sql`${table.cpcMicros} is null or ${table.cpcMicros} >= 0`),
     check(

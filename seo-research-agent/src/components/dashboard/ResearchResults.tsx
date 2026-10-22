@@ -13,13 +13,14 @@ import { ContentPlanView } from "./ContentPlanView";
 import { InsightsCard } from "./InsightsCard";
 import { IskillsView } from "./IskillsView";
 import { KeywordTable } from "./KeywordTable";
+import { KgrView } from "./KgrView";
 import { LaunchPlanView } from "./LaunchPlanView";
 import { NicheTypeCard } from "./NicheTypeCard";
 import { NicheVerdictCard } from "./NicheVerdictCard";
 import { SerpPanel } from "./SerpPanel";
 import { useSerpAnalysis } from "./useSerpAnalysis";
 
-type ResultTab = "overview" | "keywords" | "questions" | "plan" | "launch" | "iskills" | "content-gap";
+type ResultTab = "overview" | "keywords" | "questions" | "plan" | "launch" | "kgr" | "iskills" | "content-gap";
 const TABS_LABEL = "Result views";
 const BEST_OPPORTUNITY_COUNT = 5;
 
@@ -74,6 +75,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
           { id: "questions", label: "Questions", count: questions.length },
           { id: "plan", label: "Content plan" },
           { id: "launch", label: "Launch plan" },
+          { id: "kgr", label: "KGR" },
           { id: "iskills", label: "iSkills check" },
           { id: "content-gap", label: "Content gap" },
         ]}
@@ -97,6 +99,7 @@ export function ResearchResults({ runId, analysis, project, onProjectUpdate, key
         {tab === "questions" ? table(questions, "No question keywords for this topic.") : null}
         {tab === "plan" && seed ? <ContentPlanView seed={seed.keyword} keywords={keywords} /> : null}
         {tab === "launch" && seed ? <LaunchPlanView seed={seed.keyword} keywords={keywords} nicheType={nicheType} /> : null}
+        {tab === "kgr" ? <KgrView runId={runId} keywords={keywords} /> : null}
         {tab === "iskills" && seed ? <IskillsView seed={seed} keywords={keywords} serp={seedSerp.data} /> : null}
         {tab === "content-gap" ? <ContentGapView runId={runId} project={project} onProjectUpdate={onProjectUpdate} /> : null}
       </div>

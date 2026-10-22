@@ -64,6 +64,7 @@ const keyword = {
   countryCode: "US",
   languageCode: "en",
   nicheScore: null,
+  allintitleCount: null,
 };
 
 const completedDetail: ResearchDetailResponse = {

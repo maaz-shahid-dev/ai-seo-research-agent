@@ -8,7 +8,7 @@ import { AppError } from "@/server/http/errors";
 
 import { createMemoryRateLimiter, type RateLimiter } from "./memory-rate-limiter";
 
-type LimitKind = "sign-in-ip" | "sign-in-account" | "registration" | "research" | "analysis" | "serp" | "content-gap";
+type LimitKind = "sign-in-ip" | "sign-in-account" | "registration" | "research" | "analysis" | "serp" | "content-gap" | "kgr";
 
 type LimitDefinition = { requests: number; windowSeconds: number };
 
@@ -21,6 +21,8 @@ const definitions: Record<LimitKind, LimitDefinition> = {
   // Paid lookups a user starts by hand (automatic top-10 analyses are not counted).
   serp: { requests: 60, windowSeconds: 60 * 60 },
   "content-gap": { requests: 10, windowSeconds: 60 * 60 },
+  // Each request runs up to 10 live allintitle lookups.
+  kgr: { requests: 20, windowSeconds: 60 * 60 },
 };
 
 let rateLimiters: Partial<Record<LimitKind, RateLimiter>> = {};

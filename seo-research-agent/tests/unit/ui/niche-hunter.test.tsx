@@ -21,7 +21,7 @@ function keyword(id: number, name: string, overrides: Partial<KeywordDto> = {}):
     id, keyword: name, source: "related", intent: "commercial", searchVolume: 1_000 * id,
     cpcMicros: 500_000 * id, competition: 0.2 * id, difficulty: 10 * id,
     trend: [{ month: "2026-02", volume: 300 }, { month: "2026-01", volume: 100 }, { month: "2026-03", volume: 600 }],
-    countryCode: "US", languageCode: "en", nicheScore: null, ...overrides,
+    countryCode: "US", languageCode: "en", nicheScore: null, allintitleCount: null, ...overrides,
   };
 }
 

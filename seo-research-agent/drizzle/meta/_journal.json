@@ -57,6 +57,13 @@
       "when": 1792678340116,
       "tag": "0007_niche_idea_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792679751929,
+      "tag": "0008_kgr_allintitle",
+      "breakpoints": true
     }
   ]
 }
