@@ -1,6 +1,6 @@
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { and, eq } from "drizzle-orm";
-import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import type { DatabaseClient } from "@/server/db/client";
@@ -36,7 +36,7 @@ import {
   updateProject,
 } from "@/server/db/repositories";
 import * as schema from "@/server/db/schema";
-import { applyMigrations } from "../helpers/pglite";
+import { createTestDatabase, PGLITE_SETUP_TIMEOUT_MS } from "../helpers/pglite";
 
 const OWNER_ONE_ID = "10000000-0000-4000-8000-000000000001";
 const OWNER_TWO_ID = "10000000-0000-4000-8000-000000000002";
@@ -49,10 +49,7 @@ describe("PostgreSQL schema and tenant repositories", () => {
   let repositoryDatabase: DatabaseClient;
 
   beforeAll(async () => {
-    client = new PGlite();
-    await applyMigrations(client);
-    database = drizzle(client, { schema, casing: "snake_case" });
-    repositoryDatabase = database as unknown as DatabaseClient;
+    ({ client, database, repositoryDatabase } = await createTestDatabase());
 
     await database.insert(users).values([
       {
@@ -68,7 +65,7 @@ describe("PostgreSQL schema and tenant repositories", () => {
         passwordHash: PASSWORD_HASH,
       },
     ]);
-  }, 30_000);
+  }, PGLITE_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await client.close();

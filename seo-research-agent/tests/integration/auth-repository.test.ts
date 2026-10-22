@@ -1,5 +1,4 @@
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { DatabaseClient } from "@/server/db/client";
@@ -13,23 +12,18 @@ import {
   replacePasswordHash,
   type CreateUserInput,
 } from "@/server/db/repositories/users";
-import * as schema from "@/server/db/schema";
-import { applyMigrations } from "../helpers/pglite";
+import { createTestDatabase, PGLITE_SETUP_TIMEOUT_MS } from "../helpers/pglite";
 
 const PASSWORD_HASH = "$argon2id$v=19$m=19456,t=2,p=1$fixture$fixturefixturefixture";
 const NEW_PASSWORD_HASH = "$argon2id$v=19$m=19456,t=3,p=1$fixture$newfixturefixturefixture";
 
 describe("authentication user repository", () => {
   let client: PGlite;
-  let database: PgliteDatabase<typeof schema>;
   let repositoryDatabase: DatabaseClient;
 
   beforeAll(async () => {
-    client = new PGlite();
-    await applyMigrations(client);
-    database = drizzle(client, { schema, casing: "snake_case" });
-    repositoryDatabase = database as unknown as DatabaseClient;
-  }, 30_000);
+    ({ client, repositoryDatabase } = await createTestDatabase());
+  }, PGLITE_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await client.close();

@@ -1,5 +1,4 @@
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { DatabaseClient } from "@/server/db/client";
@@ -11,8 +10,7 @@ import {
   listProjects,
 } from "@/server/db/repositories/projects";
 import { createUser } from "@/server/db/repositories/users";
-import * as schema from "@/server/db/schema";
-import { applyMigrations } from "../helpers/pglite";
+import { createTestDatabase, PGLITE_SETUP_TIMEOUT_MS } from "../helpers/pglite";
 
 const PASSWORD_HASH = "$argon2id$v=19$m=19456,t=2,p=1$fixture$fixturefixturefixture";
 
@@ -21,10 +19,8 @@ describe("default project provisioning", () => {
   let database: DatabaseClient;
 
   beforeAll(async () => {
-    client = new PGlite();
-    await applyMigrations(client);
-    database = drizzle(client, { schema, casing: "snake_case" }) as unknown as DatabaseClient;
-  }, 30_000);
+    ({ client, repositoryDatabase: database } = await createTestDatabase());
+  }, PGLITE_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await client.close();
