@@ -201,6 +201,12 @@ describe("PostgreSQL schema and tenant repositories", () => {
       keywordLimit: 100,
     } as const;
     const first = await createResearchRun(repositoryDatabase, OWNER_ONE_ID, input);
+    // Regression: a single submission must already have its dispatch event.
+    const afterFirst = await database
+      .select()
+      .from(jobOutbox)
+      .where(and(eq(jobOutbox.ownerId, OWNER_ONE_ID), eq(jobOutbox.idempotencyKey, input.idempotencyKey)));
+    expect(afterFirst).toHaveLength(1);
     const replay = await createResearchRun(repositoryDatabase, OWNER_ONE_ID, input);
     expect(replay.id).toBe(first.id);
     const events = await database

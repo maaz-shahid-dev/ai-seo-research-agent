@@ -66,17 +66,23 @@ export async function createResearchRun(
       )
       on conflict ("owner_id", "idempotency_key") do nothing
       returning "id"
+    ), target_run as (
+      -- A run inserted above is invisible to reads in this same statement, so
+      -- take it from RETURNING; a replay finds the existing run in the table.
+      select "id" from inserted_run
+      union all
+      select ${researchRuns.id} from ${researchRuns}
+      where ${researchRuns.ownerId} = ${ownerId}
+        and ${researchRuns.idempotencyKey} = ${idempotencyKey}
+        and ${researchRuns.requestHash} = ${requestHash}
     ), inserted_event as (
       insert into ${jobOutbox} (
         "owner_id", "aggregate_type", "aggregate_id", "event_type", "idempotency_key", "payload"
       )
       select
-        ${ownerId}, 'research_run', ${researchRuns.id},
+        ${ownerId}, 'research_run', target_run."id",
         ${RESEARCH_REQUESTED_EVENT}, ${idempotencyKey}, ${JSON.stringify(payload)}::jsonb
-      from ${researchRuns}
-      where ${researchRuns.ownerId} = ${ownerId}
-        and ${researchRuns.idempotencyKey} = ${idempotencyKey}
-        and ${researchRuns.requestHash} = ${requestHash}
+      from target_run
       on conflict ("owner_id", "event_type", "idempotency_key") do nothing
       returning "id"
     )
