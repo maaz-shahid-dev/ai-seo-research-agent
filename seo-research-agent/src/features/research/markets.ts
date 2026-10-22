@@ -3,19 +3,19 @@
  * (seeded by migrations 0001 and 0006).
  */
 export const MARKETS = [
-  { countryCode: "US", name: "United States", flag: "🇺🇸" },
-  { countryCode: "GB", name: "United Kingdom", flag: "🇬🇧" },
-  { countryCode: "CA", name: "Canada", flag: "🇨🇦" },
-  { countryCode: "AU", name: "Australia", flag: "🇦🇺" },
-  { countryCode: "IN", name: "India", flag: "🇮🇳" },
-  { countryCode: "PK", name: "Pakistan", flag: "🇵🇰" },
-  { countryCode: "AE", name: "United Arab Emirates", flag: "🇦🇪" },
-  { countryCode: "SG", name: "Singapore", flag: "🇸🇬" },
-  { countryCode: "NZ", name: "New Zealand", flag: "🇳🇿" },
-  { countryCode: "ZA", name: "South Africa", flag: "🇿🇦" },
-  { countryCode: "NG", name: "Nigeria", flag: "🇳🇬" },
-  { countryCode: "PH", name: "Philippines", flag: "🇵🇭" },
-  { countryCode: "IE", name: "Ireland", flag: "🇮🇪" },
+  { countryCode: "US", name: "United States" },
+  { countryCode: "GB", name: "United Kingdom" },
+  { countryCode: "CA", name: "Canada" },
+  { countryCode: "AU", name: "Australia" },
+  { countryCode: "IN", name: "India" },
+  { countryCode: "PK", name: "Pakistan" },
+  { countryCode: "AE", name: "United Arab Emirates" },
+  { countryCode: "SG", name: "Singapore" },
+  { countryCode: "NZ", name: "New Zealand" },
+  { countryCode: "ZA", name: "South Africa" },
+  { countryCode: "NG", name: "Nigeria" },
+  { countryCode: "PH", name: "Philippines" },
+  { countryCode: "IE", name: "Ireland" },
 ] as const;
 
 export type CountryCode = (typeof MARKETS)[number]["countryCode"];

@@ -161,7 +161,7 @@ function Metric({ label, children }: { label: string; children: React.ReactNode 
 
 function countryLabel(countryCode: string) {
   const market = marketFor(countryCode);
-  return market ? `${market.flag} ${market.name}` : countryCode;
+  return market ? market.name : countryCode;
 }
 
 function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

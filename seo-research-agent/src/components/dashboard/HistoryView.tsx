@@ -141,7 +141,7 @@ export function HistoryView({ projectId, projectName, onOpen, onDeleted }: Histo
                 <button type="button" onClick={() => onOpen(run)} className="min-w-0 flex-1 text-left">
                   <span className="block truncate font-medium text-slate-900 hover:text-indigo-700">{run.query}</span>
                   <span className="mt-0.5 block text-xs text-slate-500">
-                    {formatRelativeTime(run.createdAt)} · {market ? `${market.flag} ${market.name}` : run.countryCode} · {formatNumber(run.keywordCount)} keywords
+                    {formatRelativeTime(run.createdAt)} · {market ? market.name : run.countryCode} · {formatNumber(run.keywordCount)} keywords
                   </span>
                 </button>
                 <div className="flex shrink-0 items-center gap-2">

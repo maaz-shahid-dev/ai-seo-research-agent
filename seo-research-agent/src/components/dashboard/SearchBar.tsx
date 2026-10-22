@@ -59,7 +59,7 @@ export function SearchBar({ query, onQueryChange, country, onCountryChange, onSu
             className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 sm:w-auto"
           >
             {MARKETS.map((market) => (
-              <option key={market.countryCode} value={market.countryCode}>{market.flag} {market.name}</option>
+              <option key={market.countryCode} value={market.countryCode}>{market.name}</option>
             ))}
           </select>
         </div>
