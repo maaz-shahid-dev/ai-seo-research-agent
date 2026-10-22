@@ -48,7 +48,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         redirectTo: "/",
       });
 
-      if (!result.ok) {
+      // Auth.js answers rejected credentials with HTTP 200 and an `error`, so `ok` alone isn't enough.
+      if (!result.ok || result.error) {
         setMessage(
           result.code === "try_again_later"
             ? "Sign-in is temporarily unavailable. Try again shortly."

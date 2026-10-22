@@ -18,7 +18,7 @@ afterEach(() => {
 describe("authentication form", () => {
   it("submits credentials and shows the same message for invalid sign-in", async () => {
     const user = userEvent.setup({ delay: null });
-    signInMock.mockResolvedValue({ ok: false, code: "credentials", url: null });
+    signInMock.mockResolvedValue({ ok: true, status: 200, error: "CredentialsSignin", code: "credentials", url: null });
     render(<AuthForm mode="sign-in" />);
 
     await user.type(screen.getByLabelText("Email"), "person@example.com");
@@ -68,7 +68,7 @@ describe("authentication form", () => {
       headers: { "content-type": "application/json" },
     }));
     vi.stubGlobal("fetch", fetchMock);
-    signInMock.mockResolvedValue({ ok: false, code: "credentials", url: null });
+    signInMock.mockResolvedValue({ ok: true, status: 200, error: "CredentialsSignin", code: "credentials", url: null });
     render(<AuthForm mode="sign-up" />);
 
     await user.type(screen.getByLabelText("Name"), "Person Example");
@@ -85,5 +85,33 @@ describe("authentication form", () => {
     });
     expect(String(init.body)).not.toContain("role");
     expect(signInMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe("authentication form outcomes", () => {
+  async function signInWith(result: unknown) {
+    const user = userEvent.setup({ delay: null });
+    signInMock.mockResolvedValue(result);
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    render(<AuthForm mode="sign-in" />);
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "correct horse battery staple");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    return assign;
+  }
+
+  it("reports a temporary outage that Auth.js returns with HTTP 200", async () => {
+    const assign = await signInWith({ ok: true, status: 200, error: "CredentialsSignin", code: "try_again_later", url: null });
+
+    expect((await screen.findByRole("alert")).textContent).toBe("Sign-in is temporarily unavailable. Try again shortly.");
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("navigates only after a successful sign-in", async () => {
+    const assign = await signInWith({ ok: true, status: 200, error: undefined, code: undefined, url: "http://localhost/" });
+
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith("http://localhost/"));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
